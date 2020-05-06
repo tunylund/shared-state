@@ -6,7 +6,8 @@ exports.OPEN = 'open';
 exports.CLOSE = 'open';
 exports.ERROR = 'open';
 function act(id, action, ...attrs) {
-    for (let fn of actions.get(id)?.get(action) || emptySet) {
+    var _a;
+    for (let fn of ((_a = actions.get(id)) === null || _a === void 0 ? void 0 : _a.get(action)) || emptySet) {
         try {
             fn(...attrs);
         }
@@ -25,10 +26,11 @@ function on(id, action, fn) {
 }
 exports.on = on;
 function off(id, action, fn) {
+    var _a, _b, _c;
     if (action && fn)
-        actions.get(id)?.get(action)?.delete(fn);
+        (_b = (_a = actions.get(id)) === null || _a === void 0 ? void 0 : _a.get(action)) === null || _b === void 0 ? void 0 : _b.delete(fn);
     else if (action)
-        actions.get(id)?.delete(action);
+        (_c = actions.get(id)) === null || _c === void 0 ? void 0 : _c.delete(action);
     else
         actions.delete(id);
 }

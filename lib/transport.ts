@@ -93,22 +93,18 @@ async function handleSignal(id: ID, peer: RTCPeerConnection, msg: string) {
 
 function buildChannel(id: ID, peer: RTCPeerConnection) {
   const channel: RTCDataChannel = peer.createDataChannel('data-channel', {negotiated: true, id: 0})
-  channels.set(id, chs())
-
-  function chs(): Set<RTCDataChannel> {
-    return channels.get(id) || new Set()
-  }
+  channels.set(id, channels.get(id) || new Set())
   
   channel.onopen = () => {
     console.log(id, `data-channel:`, 'open')
-    for (let ch of chs()) { ch.close() }
-    chs().add(channel)
+    for (let ch of channels.get(id) || []) { ch.close() }
+    channels.get(id)?.add(channel)
     act(id, OPEN)
   }
   channel.onclose = () => {
     console.log(id, `data-channel:`, 'close')
     channel.onerror = channel.onmessage = null
-    chs().delete(channel)
+    channels.get(id)?.delete(channel)
     act(id, CLOSE)
   }
   channel.onerror = error => {

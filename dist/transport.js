@@ -115,7 +115,8 @@ function buildChannel(id, peer) {
     };
 }
 function send(id, action, ...attrs) {
-    channels.get(id)?.forEach(channel => {
+    var _a;
+    (_a = channels.get(id)) === null || _a === void 0 ? void 0 : _a.forEach(channel => {
         if (channel.readyState === 'open') {
             channel.send(JSON.stringify({ action, attrs }));
         }
