@@ -17,7 +17,7 @@ function buildPeer(signalingSocket, config = defaultConfig) {
         try {
             const offer = await peer.createOffer();
             peer.setLocalDescription(offer);
-            signalingSocket.emit('signal', JSON.stringify({ description: offer }));
+            signalingSocket.emit('signal', { description: offer });
             console.log(id, 'signal:', 'provided an offer');
         }
         catch (err) {
@@ -67,7 +67,7 @@ function buildPeer(signalingSocket, config = defaultConfig) {
 }
 exports.buildPeer = buildPeer;
 async function handleSignal(id, peer, msg) {
-    const { description, candidate } = JSON.parse(msg);
+    const { description, candidate } = msg;
     try {
         if (description && description.type === 'answer') {
             await peer.setRemoteDescription(description);
