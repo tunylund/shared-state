@@ -85,22 +85,21 @@ async function handleSignal(id, peer, msg) {
 }
 function buildChannel(id, peer) {
     const channel = peer.createDataChannel('data-channel', { negotiated: true, id: 0 });
-    channels.set(id, chs());
-    function chs() {
-        return channels.get(id) || new Set();
-    }
+    channels.set(id, channels.get(id) || new Set());
     channel.onopen = () => {
+        var _a;
         console.log(id, `data-channel:`, 'open');
-        for (let ch of chs()) {
+        for (let ch of channels.get(id) || []) {
             ch.close();
         }
-        chs().add(channel);
+        (_a = channels.get(id)) === null || _a === void 0 ? void 0 : _a.add(channel);
         actions_1.act(id, actions_1.OPEN);
     };
     channel.onclose = () => {
+        var _a;
         console.log(id, `data-channel:`, 'close');
         channel.onerror = channel.onmessage = null;
-        chs().delete(channel);
+        (_a = channels.get(id)) === null || _a === void 0 ? void 0 : _a.delete(channel);
         actions_1.act(id, actions_1.CLOSE);
     };
     channel.onerror = error => {
