@@ -1,23 +1,78 @@
-import socketIO, { Socket } from 'socket.io'
+import { Socket } from 'socket.io'
 import { v4 as uuid } from 'uuid'
 // @ts-ignore
 import { RTCPeerConnection } from 'wrtc'
-import { Server } from 'http'
+import { off, act, Action, CLOSE, OPEN, ERROR } from './actions'
 
-type ID = string
-type Action = string
+export type ID = string
 
-interface IceServer {}
-
-interface Signal {
-  description?: string,
-  candidate?: string
+export interface Config {
+  iceServers?: {}[]
+  peerTimeout: number
+}
+const defaultConfig: Config = {
+  iceServers: [],
+  peerTimeout: 10000
 }
 
 const channels = new Map<ID, Set<RTCDataChannel>>()
 
-function signal(socket: Socket, msg: Signal) {
-  socket.emit('signal', JSON.stringify(msg))
+export function buildPeer(signalingSocket: Socket, config: Config = defaultConfig): ID {
+  const id = uuid()
+  const peer = new RTCPeerConnection({ iceServers: config.iceServers })
+  console.log(id, 'build a peer')
+  
+  peer.onnegotiationneeded = async () => {
+    try {
+      const offer = await peer.createOffer()
+      peer.setLocalDescription(offer)
+      signalingSocket.emit('signal', JSON.stringify({ description: offer }))
+      console.log(id, 'signal:', 'provided an offer')
+    } catch (err) {
+      console.error(id, 'signal', err)
+    }
+  }
+
+  function destroy(reason: string) {
+    peer.onnegotiationneeded = null
+    peer.onicecandidate = null
+    peer.onconnectionstatechange = null
+    peer.oniceconnectionstatechange = null
+    peer.onsignalingstatechange = null
+    peer.ondatachannel = null
+    signalingSocket.off('signal', onSignal)
+    signalingSocket.off('disconnect', onDisconnect)
+    signalingSocket.disconnect(true)
+    act(id, CLOSE)
+    channels.delete(id)
+    off(id)
+    peer.close()
+    console.log(id, `closed the peer: ${reason}`)
+  }
+  
+  peer.onicecandidate = ({candidate}: any) => signalingSocket.emit('signal', { candidate })
+  peer.oniceconnectionstatechange = () => {
+    if (peer.iceConnectionState === 'disconnected') destroy('iceConnectionState is disconnected')
+    if (peer.iceConnectionState === 'closed') destroy('iceConnectionState is closed')
+    if (peer.iceConnectionState === 'failed') peer.restartIce()
+  }
+  peer.onconnectionstatechange = () => { if (peer.connectionState === 'closed') destroy('connectionState is closed') }
+  peer.onsignalingstatechange = () => { if (peer.signalingState === 'closed') destroy('signalingState is closed') }
+
+  setTimeout(() => {
+    if (peer.connectionState === 'new') {
+      destroy('timeout establishing a peer connection')
+    }
+  }, config.peerTimeout)
+
+  const onSignal = (msg: string) => handleSignal(id, peer, msg)
+  const onDisconnect = () => destroy('signaling socket disconnected')
+  signalingSocket.on('signal', onSignal)
+  signalingSocket.on('disconnect', onDisconnect)
+
+  buildChannel(id, peer)
+
+  return id
 }
 
 async function handleSignal(id: ID, peer: RTCPeerConnection, msg: string) {
@@ -32,66 +87,8 @@ async function handleSignal(id: ID, peer: RTCPeerConnection, msg: string) {
       }
     }
   } catch(err) {
-    console.error(id, err);
+      console.error(id, err);
   }
-}
-
-function buildPeer(socket: Socket, iceServers: IceServer[]): ID {
-  const id = uuid()
-  console.log(id, 'building a peer for socket:', socket.id)
-  const peer = new RTCPeerConnection({ iceServers })
-  
-  peer.onnegotiationneeded = async () => {
-    try {
-      const offer = await peer.createOffer()
-      peer.setLocalDescription(offer)
-      signal(socket, { description: offer })
-      console.log(id, 'signal:', 'provided an offer')
-    } catch (err) {
-      console.error(id, 'signal', err)
-    }
-  }
-
-  function destroy(reason: string) {
-    peer.onnegotiationneeded = null
-    peer.onicecandidate = null
-    peer.onconnectionstatechange = null
-    peer.oniceconnectionstatechange = null
-    peer.onsignalingstatechange = null
-    peer.ondatachannel = null
-    socket.off('signal', onSignal)
-    socket.off('disconnect', onDisconnect)
-    socket.disconnect(true)
-    act(id, 'close')
-    channels.delete(id)
-    actions.delete(id)
-    peer.close()
-    console.log(id, `closed the peer: ${reason}`)
-  }
-  
-  peer.onicecandidate = ({candidate}: any) => signal(socket, { candidate })
-  peer.oniceconnectionstatechange = () => {
-    if (peer.iceConnectionState === 'disconnected') destroy('iceConnectionState is disconnected')
-    if (peer.iceConnectionState === 'closed') destroy('iceConnectionState is closed')
-    if (peer.iceConnectionState === 'failed') peer.restartIce()
-  }
-  peer.onconnectionstatechange = () => { if (peer.connectionState === 'closed') destroy('connectionState is closed') }
-  peer.onsignalingstatechange = () => { if (peer.signalingState === 'closed') destroy('signalingSate is closed') }
-
-  setTimeout(() => {
-    if (peer.connectionState === 'new') {
-      destroy('timeout establishing a peer connection')
-    }
-  }, 10000)
-
-  const onSignal = (msg: string) => handleSignal(id, peer, msg)
-  const onDisconnect = () => destroy('signaling socket disconnected')
-  socket.on('signal', onSignal)
-  socket.on('disconnect', onDisconnect)
-
-  buildChannel(id, peer)
-
-  return id
 }
 
 function buildChannel(id: ID, peer: RTCPeerConnection) {
@@ -106,68 +103,23 @@ function buildChannel(id: ID, peer: RTCPeerConnection) {
     console.log(id, `data-channel:`, 'open')
     for (let ch of chs()) { ch.close() }
     chs().add(channel)
-    act(id, 'open')
+    act(id, OPEN)
   }
   channel.onclose = () => {
     console.log(id, `data-channel:`, 'close')
     channel.onerror = channel.onmessage = null
     chs().delete(channel)
-    act(id, 'close')
+    act(id, CLOSE)
   }
   channel.onerror = error => {
     if (error.error.message === 'Transport channel closed') return;
     console.error(id, `data-channel:`, error)
-    act(id, 'error', [error])
+    act(id, ERROR, [error])
   }
   channel.onmessage = msg => {
     const {action, attrs} = JSON.parse(msg.data)
     act(id, action, attrs)
   }
-}
-
-
-const actions = new Map<ID, Map<Action, Set<Function>>>()
-function getActions(id: ID, action: Action) {
-  const accs = actions.get(id) || new Map<Action, Set<Function>>()
-  const fns = accs.get(action) || new Set()
-  actions.set(id, accs)
-  accs.set(action, fns)
-  return fns
-}
-
-const emptySet = new Set<any>()
-function act(id: ID, action: Action, ...attrs: any[]) {
-  for (let fn of actions.get(id)?.get(action) || emptySet) {
-    try {
-      fn(...attrs)
-    } catch (err) {
-      console.error(id, err)
-    }
-  }
-}
-
-let io: socketIO.Server
-export function start(httpServer: Server, onConnect = (id: ID) => {}, iceServers = []) {
-  if (io) io.close()
-  io = socketIO(httpServer, { transports: ['websocket'] })
-  io.on('connection', client => {
-    const id = buildPeer(client, iceServers)
-    onConnect(id)
-  })
-}
-
-export function stop() {
-  if (io) io.close()
-}
-
-export function on(id: ID, action: Action, fn: Function) {
-  if (!actions.has(id)) actions.set(id, new Map())
-  getActions(id, action).add(fn)
-}
-
-export function off(id: ID, action: Action, fn?: Function) {
-  if (fn) actions.get(id)?.get(action)?.delete(fn)
-  else actions.get(id)?.delete(action)
 }
 
 export function send(id: ID, action: Action, ...attrs: any) {
