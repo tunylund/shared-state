@@ -34,7 +34,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-push": "npm run test && npm run build && git add dist && git commit -m 'dist bump'"
+      "pre-push": "npm run test && npm run build"
     }
   }
 }
