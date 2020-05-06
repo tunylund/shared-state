@@ -33,6 +33,8 @@
     "wrtc": "^0.4.4"
   },
   "husky": {
-    "pre-push": "npm run test && npm run build && git add dist && git commit -m 'dist bump'"
+    "hooks": {
+      "pre-push": "npm run test && npm run build && git add dist && git commit -m 'dist bump'"
+    }
   }
 }
