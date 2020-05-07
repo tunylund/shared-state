@@ -62,6 +62,7 @@ function buildPeer(signalingSocket, config = defaultConfig) {
     const onDisconnect = () => destroy('signaling socket disconnected');
     signalingSocket.on('signal', onSignal);
     signalingSocket.on('disconnect', onDisconnect);
+    signalingSocket.emit('signal', { id });
     buildChannel(id, peer);
     return id;
 }
@@ -106,11 +107,12 @@ function buildChannel(id, peer) {
         if (error.error.message === 'Transport channel closed')
             return;
         console.error(id, `data-channel:`, error);
-        actions_1.act(id, actions_1.ERROR, [error]);
+        actions_1.act(id, actions_1.ERROR, error);
     };
     channel.onmessage = msg => {
         const { action, attrs } = JSON.parse(msg.data);
-        actions_1.act(id, action, attrs);
+        console.log(id, `data-channel:`, action);
+        actions_1.act(id, action, ...(attrs || []));
     };
 }
 function send(id, action, ...attrs) {

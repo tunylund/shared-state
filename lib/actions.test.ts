@@ -13,13 +13,13 @@ describe('actions', () => {
   it('should stop reacting to events', () => {
     on('some-id', 'test', cb)
     off('some-id', 'test', cb)
-    act('some-id', 'test', ['some-value'])
+    act('some-id', 'test', 'some-value')
     expect(cb).not.toHaveBeenCalled()
   })
 
   it('should not react to someone elses events', () => {
     on('some-id', 'test', cb)
-    act('some-other-id', 'test', ['some-value'])
+    act('some-other-id', 'test', 'some-value')
     expect(cb).not.toHaveBeenCalled()
   })
 })

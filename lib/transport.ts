@@ -69,6 +69,7 @@ export function buildPeer(signalingSocket: Socket, config: Config = defaultConfi
   const onDisconnect = () => destroy('signaling socket disconnected')
   signalingSocket.on('signal', onSignal)
   signalingSocket.on('disconnect', onDisconnect)
+  signalingSocket.emit('signal', { id })
 
   buildChannel(id, peer)
 
@@ -110,11 +111,12 @@ function buildChannel(id: ID, peer: RTCPeerConnection) {
   channel.onerror = error => {
     if (error.error.message === 'Transport channel closed') return;
     console.error(id, `data-channel:`, error)
-    act(id, ERROR, [error])
+    act(id, ERROR, error)
   }
   channel.onmessage = msg => {
     const {action, attrs} = JSON.parse(msg.data)
-    act(id, action, attrs)
+    console.log(id, `data-channel:`, action)
+    act(id, action, ...(attrs || []))
   }
 }
 
