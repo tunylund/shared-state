@@ -3,6 +3,7 @@ import { v4 as uuid } from 'uuid'
 // @ts-ignore
 import { RTCPeerConnection } from 'wrtc'
 import { off, act, Action, CLOSE, OPEN, ERROR } from './actions'
+import { addClient, removeClient } from './gamestate'
 
 export type ID = string
 
@@ -100,12 +101,14 @@ function buildChannel(id: ID, peer: RTCPeerConnection) {
     console.log(id, `data-channel:`, 'open')
     for (let ch of channels.get(id) || []) { ch.close() }
     channels.get(id)?.add(channel)
+    addClient(id)
     act(id, OPEN)
   }
   channel.onclose = () => {
     console.log(id, `data-channel:`, 'close')
     channel.onerror = channel.onmessage = null
     channels.get(id)?.delete(channel)
+    removeClient(id)
     act(id, CLOSE)
   }
   channel.onerror = error => {
@@ -123,6 +126,7 @@ function buildChannel(id: ID, peer: RTCPeerConnection) {
 export function send(id: ID, action: Action, ...attrs: any) {
   channels.get(id)?.forEach(channel => {
     if(channel.readyState === 'open') {
+      console.log(id, 'send', action)
       channel.send(JSON.stringify({action, attrs}))
     } else {
       console.error(id, `could not send to a '${channel.readyState}' channel`, action)

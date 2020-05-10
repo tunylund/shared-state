@@ -6,7 +6,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.notests.json",
-    "test": "jest"
+    "test": "jest lib",
+    "test:acceptance": "npm run build && jest acceptance-tests"
   },
   "author": "",
   "license": "ISC",

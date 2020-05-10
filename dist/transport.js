@@ -4,6 +4,7 @@ const uuid_1 = require("uuid");
 // @ts-ignore
 const wrtc_1 = require("wrtc");
 const actions_1 = require("./actions");
+const gamestate_1 = require("./gamestate");
 const defaultConfig = {
     iceServers: [],
     peerTimeout: 10000
@@ -94,6 +95,7 @@ function buildChannel(id, peer) {
             ch.close();
         }
         (_a = channels.get(id)) === null || _a === void 0 ? void 0 : _a.add(channel);
+        gamestate_1.addClient(id);
         actions_1.act(id, actions_1.OPEN);
     };
     channel.onclose = () => {
@@ -101,6 +103,7 @@ function buildChannel(id, peer) {
         console.log(id, `data-channel:`, 'close');
         channel.onerror = channel.onmessage = null;
         (_a = channels.get(id)) === null || _a === void 0 ? void 0 : _a.delete(channel);
+        gamestate_1.removeClient(id);
         actions_1.act(id, actions_1.CLOSE);
     };
     channel.onerror = error => {
@@ -119,6 +122,7 @@ function send(id, action, ...attrs) {
     var _a;
     (_a = channels.get(id)) === null || _a === void 0 ? void 0 : _a.forEach(channel => {
         if (channel.readyState === 'open') {
+            console.log(id, 'send', action);
             channel.send(JSON.stringify({ action, attrs }));
         }
         else {
