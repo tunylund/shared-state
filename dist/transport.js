@@ -1,15 +1,39 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+const socket_io_1 = __importDefault(require("socket.io"));
 const uuid_1 = require("uuid");
 // @ts-ignore
 const wrtc_1 = require("wrtc");
 const actions_1 = require("./actions");
 const gamestate_1 = require("./gamestate");
+const gamestate_2 = require("./gamestate");
 const defaultConfig = {
     iceServers: [],
     peerTimeout: 10000
 };
 const channels = new Map();
+let signalingServer = null;
+function start(httpServerOrPort, gameState, onConnect, config) {
+    if (signalingServer)
+        close();
+    gamestate_2.init(Object.assign({ clients: [], ...gameState }));
+    signalingServer = socket_io_1.default(httpServerOrPort, { transports: ['websocket'] });
+    signalingServer.on('connection', signalingSocket => {
+        const id = buildPeer(signalingSocket, config);
+        onConnect(id);
+    });
+}
+exports.start = start;
+function stop() {
+    if (signalingServer) {
+        signalingServer.close();
+        signalingServer = null;
+    }
+}
+exports.stop = stop;
 function buildPeer(signalingSocket, config = defaultConfig) {
     const id = uuid_1.v4();
     const peer = new wrtc_1.RTCPeerConnection({ iceServers: config.iceServers });
@@ -67,7 +91,6 @@ function buildPeer(signalingSocket, config = defaultConfig) {
     buildChannel(id, peer);
     return id;
 }
-exports.buildPeer = buildPeer;
 async function handleSignal(id, peer, msg) {
     const { description, candidate } = msg;
     try {

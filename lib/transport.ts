@@ -1,9 +1,10 @@
-import { Socket } from 'socket.io'
+import socketIO, { Socket } from 'socket.io'
 import { v4 as uuid } from 'uuid'
 // @ts-ignore
 import { RTCPeerConnection } from 'wrtc'
 import { off, act, Action, CLOSE, OPEN, ERROR } from './actions'
 import { addClient, removeClient } from './gamestate'
+import { init } from './gamestate'
 
 export type ID = string
 
@@ -17,8 +18,26 @@ const defaultConfig: Config = {
 }
 
 const channels = new Map<ID, Set<RTCDataChannel>>()
+let signalingServer: socketIO.Server|null = null
 
-export function buildPeer(signalingSocket: Socket, config: Config = defaultConfig): ID {
+export function start(httpServerOrPort: any, gameState: {}, onConnect: (id: ID) => void, config?: Config) {
+  if (signalingServer) close()
+  init(Object.assign({clients: [], ...gameState}))
+  signalingServer = socketIO(httpServerOrPort, { transports: ['websocket'] })
+  signalingServer.on('connection', signalingSocket => {
+    const id = buildPeer(signalingSocket, config)
+    onConnect(id)
+  })
+}
+
+export function stop() {
+  if (signalingServer) {
+    signalingServer.close()
+    signalingServer = null
+  }
+}
+
+function buildPeer(signalingSocket: Socket, config: Config = defaultConfig): ID {
   const id = uuid()
   const peer = new RTCPeerConnection({ iceServers: config.iceServers })
   console.log(id, 'build a peer')
