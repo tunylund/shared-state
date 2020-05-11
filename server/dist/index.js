@@ -11,3 +11,4 @@ exports.state = gamestate_1.state;
 const actions_1 = require("./actions");
 exports.on = actions_1.on;
 exports.off = actions_1.off;
+console.log('foo');

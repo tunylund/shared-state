@@ -10,7 +10,7 @@ describe('high-level-tests', () => {
 
   async function buildClient(): Promise<ChildProcess> {
     return new Promise((resolve, reject) => {
-      const client = spawn('node', ['--experimental-modules', './acceptance-tests/acceptance-test-client.mjs', `port=${port}`], { stdio: ['ipc'] })
+      const client = spawn('node', ['--experimental-modules', './test/acceptance-test-client.mjs', `port=${port}`], { stdio: ['ipc'] })
       client.stdout?.pipe(process.stdout)
       client.stderr?.pipe(process.stderr)
       client.on('message', () => resolve(client))
@@ -23,7 +23,7 @@ describe('high-level-tests', () => {
 
   async function buildServer(): Promise<[ChildProcess, number]> {
     return new Promise((resolve, reject) => {
-      const server = fork('./acceptance-tests/acceptance-test-server.js', [], {silent: true})
+      const server = fork('./test/acceptance-test-server.js', [], {silent: true})
       server.stdout?.pipe(process.stdout)
       server.stderr?.pipe(process.stderr)
       server.on('close', () => console.log('server closed'))

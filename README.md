@@ -1,2 +1,12 @@
-# gamestate
-a library for synchronizing gamestate between client and server
+# GameState
+Synchronized state between server and multiple clients using WebRTC and WebSockets
+
+# Server usage
+```
+
+```
+
+# Client usage
+```
+
+```

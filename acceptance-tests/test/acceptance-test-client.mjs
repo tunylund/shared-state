@@ -1,14 +1,14 @@
 //@ts-ignore
 import wrtc from 'wrtc'
 import io from 'socket.io-client'
-import { connect, disconnect, on } from './../gamestate-client/transport.mjs'
+import { connect, on } from 'gamestate-client'
 
 global.RTCPeerConnection = wrtc.RTCPeerConnection
 global.io = io
 
 const port = process.argv.find(arg => arg.startsWith('port=')).split('=')[1]
 console.log('client:', `connecting to 'http://localhost:${port}'`)
-connect(`http://localhost:${port}`)
+const disconnect = connect(`http://localhost:${port}`)
 
 on('open', () => process.send('connected'))
 on('socket-error', err => console.error(err))

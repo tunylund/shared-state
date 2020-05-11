@@ -1,5 +1,5 @@
 const { createServer } = require('http')
-const { start, stop, state } = require('../dist/index')
+const { start, stop, state } = require('gamestate-server')
 
 function send(message) {
   if (process.send) process.send(message)
