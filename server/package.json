@@ -22,7 +22,6 @@
     "@types/uuid": "^7.0.3",
     "@types/webrtc": "0.0.26",
     "babel-jest": "^26.0.1",
-    "husky": "^4.2.5",
     "jest": "^26.0.1",
     "socket.io-client": "^2.3.0",
     "typescript": "^3.8.3"
@@ -30,12 +29,7 @@
   "dependencies": {
     "deep-diff": "^1.0.2",
     "socket.io": "^2.3.0",
-    "wrtc": "^0.4.4",
-    "uuid": "^8.0.0"
-  },
-  "husky": {
-    "hooks": {
-      "pre-push": "npm run test && npm run test:acceptance"
-    }
+    "uuid": "^8.0.0",
+    "wrtc": "^0.4.4"
   }
 }
