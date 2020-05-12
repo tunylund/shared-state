@@ -1,7 +1,11 @@
 {
   "name": "gamestate-server",
   "version": "1.0.0",
-  "description": "",
+  "description": "A library for synchronizing states between a server and multiple clients",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tunylund/gamestate"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

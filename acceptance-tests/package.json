@@ -1,10 +1,14 @@
 {
   "name": "gamestate-acceptance-tests",
   "version": "1.0.0",
-  "description": "",
+  "description": "Acceptance tests for gamestate-server and gamestate-client",
   "main": "acceptance-test.ts",
   "scripts": {
     "test": "npm update gamestate-server gamestate-client && jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tunylund/gamestate"
   },
   "author": "Tuomas Nylund",
   "license": "MIT",
