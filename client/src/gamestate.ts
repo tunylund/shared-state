@@ -5,7 +5,7 @@ export enum GAMESTATE {
   UPDATE = 'gamestate-update'
 }
 
-type ID = string
+export type ID = string
 
 export interface State {
   clients: ID[]
@@ -21,6 +21,6 @@ on(GAMESTATE.UPDATE, (newState: State) => {
   current = newState
 })
 
-export function state(): State {
-  return current
+export function state<T extends State>(): T {
+  return current as T
 }
