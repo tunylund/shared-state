@@ -1,23 +1,32 @@
 const { createServer } = require('http')
-const { start, stop, state } = require('gamestate-server')
+const { start, stop, state, update } = require('gamestate-server')
 
 function send(message) {
   if (process.send) process.send(message)
-  else console.log('server:', message)
+  else log(message)
 }
 
+function log(message) {
+  console.log('acceptance-test-server:', message)
+}
+
+const initialState = JSON.parse(process.argv.find(arg => arg.startsWith('state=')).split('=')[1])
 const server = createServer((req, res) => {})
-start(server, {some: 'state'}, id => {})
+start(server, initialState, id => {})
 
 process.on('disconnect', () => {
-  console.log('server:', 'closing server')
+  log('closing server')
   stop()
   server.close(() => process.exit(0))
 })
 
 process.on('message', msg => {
-  console.log('server:', msg)
+  log(msg)
   if (msg === 'listClients') send(state().clients)
+  else {
+    update(msg)
+    send(state())
+  }
 })
 
 server.listen(0, () => {

@@ -1,2 +1,11 @@
-export declare function connect(url: string): () => void;
-export declare function send(action: string, ...attrs: any[]): void;
+export declare enum GAMESTATE {
+    INIT = "gamestate-init",
+    UPDATE = "gamestate-update"
+}
+declare type ID = string;
+export interface State {
+    clients: ID[];
+    [key: string]: any;
+}
+export declare function state(): State;
+export {};

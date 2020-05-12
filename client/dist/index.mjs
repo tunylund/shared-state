@@ -1,4 +1,5 @@
-import { connect, send } from './gamestate.mjs';
-import { on, off } from './actions.mjs';
-export { connect, send, on, off };
+import { connect, send } from './transport.mjs';
+import { state } from './gamestate.mjs';
+import { on, off, ACTIONS } from './actions.mjs';
+export { connect, send, on, off, state, ACTIONS };
 //# sourceMappingURL=index.mjs.map

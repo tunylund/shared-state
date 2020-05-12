@@ -19,22 +19,21 @@ function init(state) {
 exports.init = init;
 function update(state) {
     var _a;
-    const target = {};
+    state.clients = current.clients;
     (_a = deep_diff_1.diff(current, state)) === null || _a === void 0 ? void 0 : _a.map(d => {
         deep_diff_1.applyChange(current, state, d);
-        deep_diff_1.applyChange(target, state, d);
     });
-    transport_1.broadcast(GAMESTATE.UPDATE, target);
+    transport_1.broadcast(GAMESTATE.UPDATE, current);
 }
 exports.update = update;
 function addClient(id) {
-    const newState = { ...current, clients: [id, ...current.clients] };
-    transport_1.send(id, GAMESTATE.INIT, newState);
-    update(newState);
+    current.clients.push(id);
+    transport_1.send(id, GAMESTATE.INIT, current);
+    update(current);
 }
 exports.addClient = addClient;
 function removeClient(id) {
-    const newState = { ...current, clients: current.clients.filter(_id => _id !== id) };
-    update(newState);
+    current.clients.splice(current.clients.indexOf(id), 1);
+    update(current);
 }
 exports.removeClient = removeClient;

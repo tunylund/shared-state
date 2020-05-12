@@ -1,14 +1,12 @@
-import { fork, ChildProcess, spawn } from 'child_process'
+import { fork, ChildProcess, spawn, Serializable } from 'child_process'
 
-jest.setTimeout(10000)
-
-describe('high-level-tests', () => {
-  const initialState = {some: 'state'}
+describe('gamestate-acceptance-tests', () => {
+  
   let server: ChildProcess,
       port: number,
-      clients: Set<ChildProcess> = new Set()
+      client: ChildProcess
 
-  async function buildClient(): Promise<ChildProcess> {
+  function buildClient(): Promise<ChildProcess> {
     return new Promise((resolve, reject) => {
       const client = spawn('node', ['--experimental-modules', './test/acceptance-test-client.mjs', `port=${port}`], { stdio: ['ipc'] })
       client.stdout?.pipe(process.stdout)
@@ -16,69 +14,72 @@ describe('high-level-tests', () => {
       client.on('message', () => resolve(client))
       client.on('error', reject)
       client.on('close', reject)
-      client.on('exit', () => clients.delete(client))
-      clients.add(client)
     })
   }
 
-  async function buildServer(): Promise<[ChildProcess, number]> {
+  function buildServer(): Promise<[ChildProcess, number]> {
+    const initialState = {state: 'initial'}
     return new Promise((resolve, reject) => {
-      const server = fork('./test/acceptance-test-server.js', [], {silent: true})
+      const server = fork('./test/acceptance-test-server.js', [`state=${JSON.stringify(initialState)}`], {silent: true})
       server.stdout?.pipe(process.stdout)
       server.stderr?.pipe(process.stderr)
       server.on('close', () => console.log('server closed'))
       server.on('message', (port: number) => resolve([server, port]))
+      server.on('error', reject)
+      server.on('close', reject)
+    })
+  }
+
+  function close(target: ChildProcess): Promise<any> {
+    return new Promise(resolve => {
+      if (target.connected) {
+        target.on('exit', () => resolve())
+        target.disconnect()
+      } else resolve()
     })
   }
 
   beforeEach(async () => {
     [server, port] = await buildServer()
+    client = await buildClient()
   })
 
   afterEach(async () => {
-    const serverClosed = new Promise((resolve) => {
-      server.on('exit', () => resolve())
-      server.disconnect()
-    })
-    const clientsClosed = Array.from(clients).map(client => new Promise(resolve => {
-      client.on('exit', () => resolve())
-      client.disconnect()
-    }))
-
-    return Promise.all([serverClosed, ...clientsClosed])
+    await close(server)
+    await close(client)
   })
 
-  async function listClients(): Promise<any[]> {
+  function send<T>(target: ChildProcess, message: Serializable): Promise<T> {
     return new Promise(resolve => {
-      server.on('message', resolve)
-      server.send('listClients')
+      target.on('message', resolve)
+      target.send(message)
     })
   }
 
-  async function getState(client: ChildProcess): Promise<any> {
-    return new Promise(resolve => {
-      client.on('message', resolve)
-      client.send('getState')
-    })
-  }
-
-  async function waitForConsistency() {
-    return new Promise(resolve => setTimeout(resolve, 500))
-  }
+  const listClients = () => send<any[]>(server, 'listClients')
+  const changeState = (state: Serializable) => send<any>(server, state)
+  const getClientId = () => send<string>(client, 'getId')
+  const getClientState = () => send<Serializable>(client, 'getState')
+  const waitForConsistency = () => new Promise(resolve => setTimeout(resolve, 250))
 
   it('should maintain knowledge of which clients are joined', async () => {
-    expect(await listClients()).toHaveLength(0)
-    const clienta = await buildClient()
     expect(await listClients()).toHaveLength(1)
-    clienta.disconnect()
+    client.disconnect()
     await waitForConsistency()
     expect(await listClients()).toHaveLength(0)
+  })
+
+  it('should send id newly connected clients', async () => {
+    expect(await getClientId()).not.toBeNull()
   })
 
   it('should send state to newly connected clients', async () => {
-    const clienta = await buildClient()
     await waitForConsistency()
-    expect(await getState(clienta)).toMatchObject(initialState)
+    expect(await getClientState()).toMatchObject({state: 'initial'})
   })
 
+  it('should send state updates to connected clients', async () => {
+    await changeState({state: 'new'})
+    expect(await getClientState()).toMatchObject({state: 'new'})
+  })
 })

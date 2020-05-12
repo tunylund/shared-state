@@ -6,37 +6,36 @@ export enum GAMESTATE {
   UPDATE = 'gamestate-update'
 }
 
-interface GameState {
+export interface State {
   clients: ID[]
   [key: string]: any
 }
-let current: GameState = { clients: [] }
+let current: State = { clients: [] }
 
-export function state(): GameState {
+export function state(): State {
   return current
 }
 
-export function init(state: GameState) {
+export function init(state: Partial<State>) {
   current = JSON.parse(JSON.stringify(Object.assign({ clients: [] }, state)))
   broadcast(GAMESTATE.INIT, current)
 }
 
-export function update(state: GameState) {
-  const target: any = {}
+export function update(state: Partial<State>) {
+  state.clients = current.clients
   diff(current, state)?.map(d => {
     applyChange(current, state, d)
-    applyChange(target, state, d)
   })
-  broadcast(GAMESTATE.UPDATE, target)
+  broadcast(GAMESTATE.UPDATE, current)
 }
 
 export function addClient(id: ID) {
-  const newState = {...current, clients: [id, ...current.clients]}
-  send(id, GAMESTATE.INIT, newState)
-  update(newState)
+  current.clients.push(id)
+  send(id, GAMESTATE.INIT, current)
+  update(current)
 }
 
 export function removeClient(id: ID) {
-  const newState = {...current, clients: current.clients.filter(_id => _id !== id)}
-  update(newState)
+  current.clients.splice(current.clients.indexOf(id), 1)
+  update(current)
 }

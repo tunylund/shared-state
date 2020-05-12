@@ -12,5 +12,8 @@
   "devDependencies": {
     "@types/socket.io-client": "^1.4.32",
     "typescript": "^3.8.3"
+  },
+  "peerDependencies": {
+    "socket.io-client": "^2.3.0"
   }
 }

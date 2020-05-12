@@ -8,6 +8,7 @@ exports.broadcast = transport_1.broadcast;
 exports.broadcastToOthers = transport_1.broadcastToOthers;
 const gamestate_1 = require("./gamestate");
 exports.state = gamestate_1.state;
+exports.update = gamestate_1.update;
 const actions_1 = require("./actions");
 exports.on = actions_1.on;
 exports.off = actions_1.off;

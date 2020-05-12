@@ -1,3 +1,4 @@
-import { connect, send } from './gamestate';
-import { on, off } from './actions';
-export { connect, send, on, off };
+import { connect, send } from './transport';
+import { state } from './gamestate';
+import { on, off, ACTIONS } from './actions';
+export { connect, send, on, off, state, ACTIONS };
