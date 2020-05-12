@@ -13,3 +13,4 @@ const actions_1 = require("./actions");
 exports.on = actions_1.on;
 exports.off = actions_1.off;
 exports.act = actions_1.act;
+exports.ACTIONS = actions_1.ACTIONS;
