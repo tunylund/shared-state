@@ -12,16 +12,16 @@ export interface State {
 }
 let current: State = { clients: [] }
 
-export function state(): State {
-  return current
+export function state<T extends State>(): T {
+  return current as T
 }
 
-export function init(state: Partial<State>) {
+export function init<T extends State>(state: Partial<T>) {
   current = JSON.parse(JSON.stringify(Object.assign({ clients: [] }, state)))
   broadcast(GAMESTATE.INIT, current)
 }
 
-export function update(state: Partial<State>) {
+export function update<T extends State>(state: Partial<State>) {
   state.clients = current.clients
   diff(current, state)?.map(d => {
     applyChange(current, state, d)
