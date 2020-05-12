@@ -2,7 +2,7 @@ import socketIO, { Socket } from 'socket.io'
 import { v4 as uuid } from 'uuid'
 // @ts-ignore
 import { RTCPeerConnection } from 'wrtc'
-import { off, act, Action, CLOSE, OPEN, ERROR } from './actions'
+import { off, act, Action, ACTIONS } from './actions'
 import { addClient, removeClient } from './gamestate'
 import { init } from './gamestate'
 
@@ -63,7 +63,7 @@ function buildPeer(signalingSocket: Socket, config: Config = defaultConfig): ID 
     signalingSocket.off('signal', onSignal)
     signalingSocket.off('disconnect', onDisconnect)
     signalingSocket.disconnect(true)
-    act(id, CLOSE)
+    act(id, ACTIONS.CLOSE)
     channels.delete(id)
     off(id)
     peer.close()
@@ -121,19 +121,19 @@ function buildChannel(id: ID, peer: RTCPeerConnection) {
     for (let ch of channels.get(id) || []) { ch.close() }
     channels.get(id)?.add(channel)
     addClient(id)
-    act(id, OPEN)
+    act(id, ACTIONS.OPEN)
   }
   channel.onclose = () => {
     console.log(id, `data-channel:`, 'close')
     channel.onerror = channel.onmessage = null
     channels.get(id)?.delete(channel)
     removeClient(id)
-    act(id, CLOSE)
+    act(id, ACTIONS.CLOSE)
   }
   channel.onerror = error => {
     if (error.error.message === 'Transport channel closed') return;
     console.error(id, `data-channel:`, error)
-    act(id, ERROR, error)
+    act(id, ACTIONS.ERROR, error)
   }
   channel.onmessage = msg => {
     const {action, attrs} = JSON.parse(msg.data)

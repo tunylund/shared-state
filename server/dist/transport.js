@@ -59,7 +59,7 @@ function buildPeer(signalingSocket, config = defaultConfig) {
         signalingSocket.off('signal', onSignal);
         signalingSocket.off('disconnect', onDisconnect);
         signalingSocket.disconnect(true);
-        actions_1.act(id, actions_1.CLOSE);
+        actions_1.act(id, actions_1.ACTIONS.CLOSE);
         channels.delete(id);
         actions_1.off(id);
         peer.close();
@@ -119,7 +119,7 @@ function buildChannel(id, peer) {
         }
         (_a = channels.get(id)) === null || _a === void 0 ? void 0 : _a.add(channel);
         gamestate_1.addClient(id);
-        actions_1.act(id, actions_1.OPEN);
+        actions_1.act(id, actions_1.ACTIONS.OPEN);
     };
     channel.onclose = () => {
         var _a;
@@ -127,13 +127,13 @@ function buildChannel(id, peer) {
         channel.onerror = channel.onmessage = null;
         (_a = channels.get(id)) === null || _a === void 0 ? void 0 : _a.delete(channel);
         gamestate_1.removeClient(id);
-        actions_1.act(id, actions_1.CLOSE);
+        actions_1.act(id, actions_1.ACTIONS.CLOSE);
     };
     channel.onerror = error => {
         if (error.error.message === 'Transport channel closed')
             return;
         console.error(id, `data-channel:`, error);
-        actions_1.act(id, actions_1.ERROR, error);
+        actions_1.act(id, actions_1.ACTIONS.ERROR, error);
     };
     channel.onmessage = msg => {
         const { action, attrs } = JSON.parse(msg.data);

@@ -1,7 +1,7 @@
 
 const actions = new Map<Action, Set<Function>>()
 
-type Action = string
+export type Action = string
 
 export enum ACTIONS {
   INIT = 'init',

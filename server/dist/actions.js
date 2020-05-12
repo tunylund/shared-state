@@ -2,9 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const actions = new Map();
 const emptySet = new Set();
-exports.OPEN = 'open';
-exports.CLOSE = 'open';
-exports.ERROR = 'open';
+var ACTIONS;
+(function (ACTIONS) {
+    ACTIONS["OPEN"] = "open";
+    ACTIONS["CLOSE"] = "close";
+    ACTIONS["ERROR"] = "error";
+})(ACTIONS = exports.ACTIONS || (exports.ACTIONS = {}));
 function act(id, action, ...attrs) {
     var _a;
     for (let fn of ((_a = actions.get(id)) === null || _a === void 0 ? void 0 : _a.get(action)) || emptySet) {

@@ -1,12 +1,14 @@
 import { ID } from './transport'
-export type Action = string
 
 const actions = new Map<ID, Map<Action, Set<Function>>>()
 const emptySet = new Set<any>()
 
-export const OPEN = 'open'
-export const CLOSE = 'open'
-export const ERROR = 'open'
+export type Action = string
+export enum ACTIONS {
+  OPEN = 'open',
+  CLOSE = 'close',
+  ERROR = 'error'
+}
 
 export function act(id: ID, action: Action, ...attrs: any[]) {
   for (let fn of actions.get(id)?.get(action) || emptySet) {
