@@ -82,4 +82,11 @@ describe('gamestate-acceptance-tests', () => {
     await changeState({state: 'new'})
     expect(await getClientState()).toMatchObject({state: 'new'})
   })
+
+  it('should send lag statistics periodically to the connected clients', async () => {
+    await waitForConsistency()
+    expect(await getClientState()).toMatchObject({
+      lagStatistics: expect.anything()
+    })
+  })
 })

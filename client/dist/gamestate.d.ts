@@ -5,6 +5,8 @@ export declare enum GAMESTATE {
 export declare type ID = string;
 export interface State {
     clients: ID[];
-    [key: string]: any;
+    lagStatistics: {
+        [id: string]: number;
+    };
 }
 export declare function state<T extends State>(): T;

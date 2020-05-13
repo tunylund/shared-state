@@ -9,9 +9,12 @@ export type ID = string
 
 export interface State {
   clients: ID[]
-  [key: string]: any
+  lagStatistics: {[id: string]: number}
 }
-let current: State = { clients: [] }
+let current: State = {
+  clients: [],
+  lagStatistics: {}
+}
 
 on(GAMESTATE.INIT, (newState: State) => {
   current = newState

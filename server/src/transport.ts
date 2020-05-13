@@ -4,7 +4,8 @@ import { v4 as uuid } from 'uuid'
 import { RTCPeerConnection } from 'wrtc'
 import { off, act, Action, ACTIONS } from './actions'
 import { addClient, removeClient } from './gamestate'
-import { init } from './gamestate'
+import { init, updateLag } from './gamestate'
+import { on } from '.'
 
 export type ID = string
 
@@ -122,6 +123,9 @@ function buildChannel(id: ID, peer: RTCPeerConnection) {
     channels.get(id)?.add(channel)
     addClient(id)
     act(id, ACTIONS.OPEN)
+    on(id, ACTIONS.PING, (theirTime: number) => {
+      updateLag(id, Date.now() - theirTime)
+    })
   }
   channel.onclose = () => {
     console.log(id, `data-channel:`, 'close')

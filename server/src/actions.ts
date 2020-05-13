@@ -7,7 +7,8 @@ export type Action = string
 export enum ACTIONS {
   OPEN = 'open',
   CLOSE = 'close',
-  ERROR = 'error'
+  ERROR = 'error',
+  PING = 'ping'
 }
 
 export function act(id: ID, action: Action, ...attrs: any[]) {

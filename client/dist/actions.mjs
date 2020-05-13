@@ -5,6 +5,7 @@ export var ACTIONS;
     ACTIONS["OPEN"] = "open";
     ACTIONS["CLOSE"] = "close";
     ACTIONS["ERROR"] = "error";
+    ACTIONS["PING"] = "ping";
 })(ACTIONS || (ACTIONS = {}));
 export function act(action, attrs = []) {
     var _a;

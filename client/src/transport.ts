@@ -2,7 +2,7 @@ import { act, ACTIONS } from './actions'
 
 const channels = new Set<RTCDataChannel>()
 
-function buildPeer(socket: SocketIOClient.Socket) {
+function buildPeer(socket: SocketIOClient.Socket, config: Config) {
   const peer = new RTCPeerConnection()
   
   peer.onicecandidate = ({candidate}) => socket.emit('signal', {candidate})
@@ -16,7 +16,7 @@ function buildPeer(socket: SocketIOClient.Socket) {
 
   socket.on('signal', (msg: Signal) => handleSignal(msg, peer, socket))
 
-  addChannel(peer.createDataChannel('data-channel', { negotiated: true, id: 0 }))
+  addChannel(peer.createDataChannel('data-channel', { negotiated: true, id: 0 }), config)
 
   return peer
 }
@@ -53,18 +53,20 @@ async function handleSignal({ id, description, candidate }: Signal, peer: RTCPee
   }
 }
 
-function addChannel(channel: RTCDataChannel) {
+function addChannel(channel: RTCDataChannel, config: Config) {
   channel.onopen = () => {
     console.log(`data-channel-${channel.id}:`, 'open')
     for (let ch of channels) { ch.close() }
     channels.add(channel)
     act(ACTIONS.OPEN)
+    startLagPingPong(config)
   }
   channel.onclose = () => {
     console.log(`data-channel-${channel.id}:`, 'close')
     act(ACTIONS.CLOSE)
     channel.onerror = channel.onmessage = null
     channels.delete(channel)
+    if (channels.size === 0) stopLagPingPong()
   }
   channel.onerror = error => {
     if (error.error.message === 'Transport channel closed') return;
@@ -77,12 +79,28 @@ function addChannel(channel: RTCDataChannel) {
   }
 }
 
-export function connect(url: string): () => void {
+let lagPing: any
+function startLagPingPong(config: Config) {
+  function ping() {
+    send(ACTIONS.PING, Date.now())
+    lagPing = setTimeout(ping, config.lagInterval)
+  }
+  ping()
+}
+function stopLagPingPong() {
+  clearTimeout(lagPing)
+  lagPing = null
+}
+
+interface Config { lagInterval: number }
+const defaultConfig: Config = {lagInterval: 3000}
+
+export function connect(url: string, config = defaultConfig): () => void {
   const socket = io.connect(url, { transports: ['websocket'] })
   let peer: RTCPeerConnection|null
   socket.on('connect', () => {
     if (peer) closePeer(peer, socket)
-    peer = buildPeer(socket)
+    peer = buildPeer(socket, config)
   })
   socket.on('disconnect', () => {
     if (peer) closePeer(peer, socket)

@@ -7,6 +7,7 @@ var ACTIONS;
     ACTIONS["OPEN"] = "open";
     ACTIONS["CLOSE"] = "close";
     ACTIONS["ERROR"] = "error";
+    ACTIONS["PING"] = "ping";
 })(ACTIONS = exports.ACTIONS || (exports.ACTIONS = {}));
 function act(id, action, ...attrs) {
     var _a;

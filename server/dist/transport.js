@@ -10,6 +10,7 @@ const wrtc_1 = require("wrtc");
 const actions_1 = require("./actions");
 const gamestate_1 = require("./gamestate");
 const gamestate_2 = require("./gamestate");
+const _1 = require(".");
 const defaultConfig = {
     iceServers: [],
     peerTimeout: 10000
@@ -120,6 +121,9 @@ function buildChannel(id, peer) {
         (_a = channels.get(id)) === null || _a === void 0 ? void 0 : _a.add(channel);
         gamestate_1.addClient(id);
         actions_1.act(id, actions_1.ACTIONS.OPEN);
+        _1.on(id, actions_1.ACTIONS.PING, (theirTime) => {
+            gamestate_2.updateLag(id, Date.now() - theirTime);
+        });
     };
     channel.onclose = () => {
         var _a;

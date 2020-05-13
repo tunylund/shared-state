@@ -4,7 +4,10 @@ export var GAMESTATE;
     GAMESTATE["INIT"] = "gamestate-init";
     GAMESTATE["UPDATE"] = "gamestate-update";
 })(GAMESTATE || (GAMESTATE = {}));
-let current = { clients: [] };
+let current = {
+    clients: [],
+    lagStatistics: {}
+};
 on(GAMESTATE.INIT, (newState) => {
     current = newState;
 });

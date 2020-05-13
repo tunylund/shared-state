@@ -3,7 +3,8 @@ export declare enum ACTIONS {
     INIT = "init",
     OPEN = "open",
     CLOSE = "close",
-    ERROR = "error"
+    ERROR = "error",
+    PING = "ping"
 }
 export declare function act(action: Action, attrs?: any[]): void;
 export declare function on(ev: Action, fn: Function): void;

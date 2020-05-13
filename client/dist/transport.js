@@ -1,6 +1,6 @@
 import { act, ACTIONS } from './actions';
 const channels = new Set();
-function buildPeer(socket) {
+function buildPeer(socket, config) {
     const peer = new RTCPeerConnection();
     peer.onicecandidate = ({ candidate }) => socket.emit('signal', { candidate });
     peer.oniceconnectionstatechange = () => {
@@ -15,7 +15,7 @@ function buildPeer(socket) {
     peer.onsignalingstatechange = () => { if (peer.signalingState === 'closed')
         closePeer(peer, socket); };
     socket.on('signal', (msg) => handleSignal(msg, peer, socket));
-    addChannel(peer.createDataChannel('data-channel', { negotiated: true, id: 0 }));
+    addChannel(peer.createDataChannel('data-channel', { negotiated: true, id: 0 }), config);
     return peer;
 }
 function closePeer(peer, socket) {
@@ -44,7 +44,7 @@ async function handleSignal({ id, description, candidate }, peer, socket) {
         await peer.addIceCandidate(candidate);
     }
 }
-function addChannel(channel) {
+function addChannel(channel, config) {
     channel.onopen = () => {
         console.log(`data-channel-${channel.id}:`, 'open');
         for (let ch of channels) {
@@ -52,12 +52,15 @@ function addChannel(channel) {
         }
         channels.add(channel);
         act(ACTIONS.OPEN);
+        startLagPingPong(config);
     };
     channel.onclose = () => {
         console.log(`data-channel-${channel.id}:`, 'close');
         act(ACTIONS.CLOSE);
         channel.onerror = channel.onmessage = null;
         channels.delete(channel);
+        if (channels.size === 0)
+            stopLagPingPong();
     };
     channel.onerror = error => {
         if (error.error.message === 'Transport channel closed')
@@ -70,13 +73,26 @@ function addChannel(channel) {
         act(action, attrs);
     };
 }
-export function connect(url) {
+let lagPing;
+function startLagPingPong(config) {
+    function ping() {
+        send(ACTIONS.PING, Date.now());
+        lagPing = setTimeout(ping, config.lagInterval);
+    }
+    ping();
+}
+function stopLagPingPong() {
+    clearTimeout(lagPing);
+    lagPing = null;
+}
+const defaultConfig = { lagInterval: 3000 };
+export function connect(url, config = defaultConfig) {
     const socket = io.connect(url, { transports: ['websocket'] });
     let peer;
     socket.on('connect', () => {
         if (peer)
             closePeer(peer, socket);
-        peer = buildPeer(socket);
+        peer = buildPeer(socket, config);
     });
     socket.on('disconnect', () => {
         if (peer)
