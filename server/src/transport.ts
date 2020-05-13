@@ -1,11 +1,11 @@
 import socketIO, { Socket } from 'socket.io'
 import { v4 as uuid } from 'uuid'
+import { on, off, act, Action, ACTIONS } from './actions'
+import { init, updateLag, addClient, removeClient } from './gamestate'
+
 // @ts-ignore
-import { RTCPeerConnection } from 'wrtc'
-import { off, act, Action, ACTIONS } from './actions'
-import { addClient, removeClient } from './gamestate'
-import { init, updateLag } from './gamestate'
-import { on } from '.'
+import wrtc from 'wrtc'
+const { RTCPeerConnection } = wrtc
 
 export type ID = string
 

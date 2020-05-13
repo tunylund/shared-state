@@ -8,6 +8,7 @@
   },
   "main": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "type": "module",
   "scripts": {
     "build": "./build.sh"
   },

@@ -1,5 +1,6 @@
 import { broadcast, ID, send } from "./transport"
-import { diff, applyChange } from 'deep-diff'
+import deedDiff from 'deep-diff'
+const { diff, applyChange } = deedDiff
 
 export enum GAMESTATE {
   INIT = 'gamestate-init',

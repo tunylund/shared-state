@@ -6,28 +6,30 @@
     "type": "git",
     "url": "https://github.com/tunylund/gamestate"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "exports": "./dist/index.js",
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "./dist"
+  ],
   "scripts": {
-    "build": "tsc -p tsconfig.notests.json",
+    "build": "./build.sh",
     "test": "jest",
     "test:acceptance": "npm run build && jest acceptance-tests"
   },
   "author": "Tuomas Nylund",
   "license": "MIT",
   "devDependencies": {
-    "@babel/core": "^7.9.6",
-    "@babel/preset-env": "^7.9.6",
-    "@babel/preset-typescript": "^7.9.0",
     "@types/deep-diff": "^1.0.0",
     "@types/jest": "^25.2.1",
     "@types/node": "^13.13.4",
     "@types/socket.io": "^2.1.4",
     "@types/uuid": "^7.0.3",
     "@types/webrtc": "0.0.26",
-    "babel-jest": "^26.0.1",
     "jest": "^26.0.1",
     "socket.io-client": "^2.3.0",
+    "ts-jest": "^25.5.1",
     "typescript": "^3.8.3"
   },
   "dependencies": {

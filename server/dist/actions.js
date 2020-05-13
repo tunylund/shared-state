@@ -1,17 +1,14 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 const actions = new Map();
 const emptySet = new Set();
-var ACTIONS;
+export var ACTIONS;
 (function (ACTIONS) {
     ACTIONS["OPEN"] = "open";
     ACTIONS["CLOSE"] = "close";
     ACTIONS["ERROR"] = "error";
     ACTIONS["PING"] = "ping";
-})(ACTIONS = exports.ACTIONS || (exports.ACTIONS = {}));
-function act(id, action, ...attrs) {
-    var _a;
-    for (let fn of ((_a = actions.get(id)) === null || _a === void 0 ? void 0 : _a.get(action)) || emptySet) {
+})(ACTIONS || (ACTIONS = {}));
+export function act(id, action, ...attrs) {
+    for (let fn of actions.get(id)?.get(action) || emptySet) {
         try {
             fn(...attrs);
         }
@@ -20,22 +17,18 @@ function act(id, action, ...attrs) {
         }
     }
 }
-exports.act = act;
-function on(id, action, fn) {
+export function on(id, action, fn) {
     const accs = actions.get(id) || new Map();
     const fns = accs.get(action) || new Set();
     actions.set(id, accs);
     accs.set(action, fns);
     fns.add(fn);
 }
-exports.on = on;
-function off(id, action, fn) {
-    var _a, _b, _c;
+export function off(id, action, fn) {
     if (action && fn)
-        (_b = (_a = actions.get(id)) === null || _a === void 0 ? void 0 : _a.get(action)) === null || _b === void 0 ? void 0 : _b.delete(fn);
+        actions.get(id)?.get(action)?.delete(fn);
     else if (action)
-        (_c = actions.get(id)) === null || _c === void 0 ? void 0 : _c.delete(action);
+        actions.get(id)?.delete(action);
     else
         actions.delete(id);
 }
-exports.off = off;

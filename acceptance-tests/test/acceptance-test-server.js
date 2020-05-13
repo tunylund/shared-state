@@ -1,5 +1,5 @@
-const { createServer } = require('http')
-const { start, stop, state, update } = require('gamestate-server')
+import { createServer } from 'http'
+import { start, stop, state, update } from 'gamestate-server'
 
 function send(message) {
   if (process.send) process.send(message)
