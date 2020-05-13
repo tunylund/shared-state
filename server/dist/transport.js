@@ -13,14 +13,24 @@ const gamestate_2 = require("./gamestate");
 const _1 = require(".");
 const defaultConfig = {
     iceServers: [],
-    peerTimeout: 10000
+    peerTimeout: 10000,
+    debugLog: false
 };
 const channels = new Map();
 let signalingServer = null;
-function start(httpServerOrPort, gameState, onConnect, config) {
+let logger = buildLogger(true);
+function buildLogger(debugLog) {
+    return debugLog ? console : {
+        log: console.log,
+        error: console.error,
+        debug: () => { }
+    };
+}
+function start(httpServerOrPort, gameState, onConnect, config = defaultConfig) {
     if (signalingServer)
         close();
     gamestate_2.init(Object.assign({ clients: [], ...gameState }));
+    logger = buildLogger(config.debugLog);
     signalingServer = socket_io_1.default(httpServerOrPort, { transports: ['websocket'] });
     signalingServer.on('connection', signalingSocket => {
         const id = buildPeer(signalingSocket, config);
@@ -35,19 +45,19 @@ function stop() {
     }
 }
 exports.stop = stop;
-function buildPeer(signalingSocket, config = defaultConfig) {
+function buildPeer(signalingSocket, config) {
     const id = uuid_1.v4();
     const peer = new wrtc_1.RTCPeerConnection({ iceServers: config.iceServers });
-    console.log(id, 'build a peer');
+    logger.debug(id, 'build a peer');
     peer.onnegotiationneeded = async () => {
         try {
             const offer = await peer.createOffer();
             peer.setLocalDescription(offer);
             signalingSocket.emit('signal', { description: offer });
-            console.log(id, 'signal:', 'provided an offer');
+            logger.debug(id, 'signal:', 'provided an offer');
         }
         catch (err) {
-            console.error(id, 'signal', err);
+            logger.error(id, 'signal', err);
         }
     };
     function destroy(reason) {
@@ -64,7 +74,7 @@ function buildPeer(signalingSocket, config = defaultConfig) {
         channels.delete(id);
         actions_1.off(id);
         peer.close();
-        console.log(id, `closed the peer: ${reason}`);
+        logger.debug(id, `closed the peer: ${reason}`);
     }
     peer.onicecandidate = ({ candidate }) => signalingSocket.emit('signal', { candidate });
     peer.oniceconnectionstatechange = () => {
@@ -97,7 +107,7 @@ async function handleSignal(id, peer, msg) {
     try {
         if (description && description.type === 'answer') {
             await peer.setRemoteDescription(description);
-            console.log(id, 'signal:', `accepted a remote ${description.type}`);
+            logger.debug(id, 'signal:', `accepted a remote ${description.type}`);
         }
         else if (candidate) {
             if (peer.remoteDescription && candidate.candidate) {
@@ -106,7 +116,7 @@ async function handleSignal(id, peer, msg) {
         }
     }
     catch (err) {
-        console.error(id, err);
+        logger.error(id, err);
     }
 }
 function buildChannel(id, peer) {
@@ -114,7 +124,7 @@ function buildChannel(id, peer) {
     channels.set(id, channels.get(id) || new Set());
     channel.onopen = () => {
         var _a;
-        console.log(id, `data-channel:`, 'open');
+        logger.debug(id, `data-channel:`, 'open');
         for (let ch of channels.get(id) || []) {
             ch.close();
         }
@@ -127,7 +137,7 @@ function buildChannel(id, peer) {
     };
     channel.onclose = () => {
         var _a;
-        console.log(id, `data-channel:`, 'close');
+        logger.debug(id, `data-channel:`, 'close');
         channel.onerror = channel.onmessage = null;
         (_a = channels.get(id)) === null || _a === void 0 ? void 0 : _a.delete(channel);
         gamestate_1.removeClient(id);
@@ -136,12 +146,12 @@ function buildChannel(id, peer) {
     channel.onerror = error => {
         if (error.error.message === 'Transport channel closed')
             return;
-        console.error(id, `data-channel:`, error);
+        logger.error(id, `data-channel:`, error);
         actions_1.act(id, actions_1.ACTIONS.ERROR, error);
     };
     channel.onmessage = msg => {
         const { action, attrs } = JSON.parse(msg.data);
-        console.log(id, `data-channel:`, action);
+        logger.debug(id, `data-channel:`, action);
         actions_1.act(id, action, ...(attrs || []));
     };
 }
@@ -149,11 +159,11 @@ function send(id, action, ...attrs) {
     var _a;
     (_a = channels.get(id)) === null || _a === void 0 ? void 0 : _a.forEach(channel => {
         if (channel.readyState === 'open') {
-            console.log(id, 'send', action);
+            logger.debug(id, 'send', action);
             channel.send(JSON.stringify({ action, attrs }));
         }
         else {
-            console.error(id, `could not send to a '${channel.readyState}' channel`, action);
+            logger.error(id, `could not send to a '${channel.readyState}' channel`, action);
         }
     });
 }

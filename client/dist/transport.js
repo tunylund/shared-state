@@ -26,19 +26,19 @@ function closePeer(peer, socket) {
     peer.ondatachannel = null;
     peer.close();
     socket.off('signal');
-    console.log('closed the peer');
+    logger.debug('closed the peer');
 }
 async function handleSignal({ id, description, candidate }, peer, socket) {
     if (id) {
         act(ACTIONS.INIT, [id]);
     }
     else if (description && description.type === 'offer') {
-        console.log('signal:', `received an offer`);
+        logger.debug('signal:', `received an offer`);
         await peer.setRemoteDescription(description);
         const answer = await peer.createAnswer();
         await peer.setLocalDescription(answer);
         socket.emit('signal', { description: peer.localDescription });
-        console.log('signal:', `provided an answer`);
+        logger.debug('signal:', `provided an answer`);
     }
     else if (candidate) {
         await peer.addIceCandidate(candidate);
@@ -46,7 +46,7 @@ async function handleSignal({ id, description, candidate }, peer, socket) {
 }
 function addChannel(channel, config) {
     channel.onopen = () => {
-        console.log(`data-channel-${channel.id}:`, 'open');
+        logger.debug(`data-channel-${channel.id}:`, 'open');
         for (let ch of channels) {
             ch.close();
         }
@@ -55,7 +55,7 @@ function addChannel(channel, config) {
         startLagPingPong(config);
     };
     channel.onclose = () => {
-        console.log(`data-channel-${channel.id}:`, 'close');
+        logger.debug(`data-channel-${channel.id}:`, 'close');
         act(ACTIONS.CLOSE);
         channel.onerror = channel.onmessage = null;
         channels.delete(channel);
@@ -65,7 +65,7 @@ function addChannel(channel, config) {
     channel.onerror = error => {
         if (error.error.message === 'Transport channel closed')
             return;
-        console.error(`data-channel-${channel.id}:`, error);
+        logger.error(`data-channel-${channel.id}:`, error);
         act(ACTIONS.ERROR, [error]);
     };
     channel.onmessage = msg => {
@@ -85,10 +85,22 @@ function stopLagPingPong() {
     clearTimeout(lagPing);
     lagPing = null;
 }
-const defaultConfig = { lagInterval: 3000 };
+const defaultConfig = {
+    lagInterval: 3000,
+    debugLog: false
+};
+let logger = buildLogger(true);
+function buildLogger(debugLog) {
+    return debugLog ? console : {
+        log: console.log,
+        error: console.error,
+        debug: () => { }
+    };
+}
 export function connect(url, config = defaultConfig) {
     const socket = io.connect(url, { transports: ['websocket'] });
     let peer;
+    logger = buildLogger(config.debugLog);
     socket.on('connect', () => {
         if (peer)
             closePeer(peer, socket);
@@ -116,7 +128,7 @@ export function send(action, ...attrs) {
             channel.send(JSON.stringify({ action, attrs }));
         }
         else {
-            console.error(`could not send to a ${channel.readyState} channel`, action);
+            logger.error(`could not send to a ${channel.readyState} channel`, action);
         }
     });
 }

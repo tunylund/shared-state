@@ -12,18 +12,30 @@ export type ID = string
 export interface Config {
   iceServers?: {}[]
   peerTimeout: number
+  debugLog: boolean
 }
 const defaultConfig: Config = {
   iceServers: [],
-  peerTimeout: 10000
+  peerTimeout: 10000,
+  debugLog: false
 }
 
 const channels = new Map<ID, Set<RTCDataChannel>>()
 let signalingServer: socketIO.Server|null = null
 
-export function start(httpServerOrPort: any, gameState: {}, onConnect: (id: ID) => void, config?: Config) {
+let logger = buildLogger(true)
+function buildLogger(debugLog: boolean) {
+  return debugLog ? console : {
+    log: console.log,
+    error: console.error,
+    debug: () => {}
+  }
+}
+
+export function start(httpServerOrPort: any, gameState: {}, onConnect: (id: ID) => void, config = defaultConfig) {
   if (signalingServer) close()
   init(Object.assign({clients: [], ...gameState}))
+  logger = buildLogger(config.debugLog)
   signalingServer = socketIO(httpServerOrPort, { transports: ['websocket'] })
   signalingServer.on('connection', signalingSocket => {
     const id = buildPeer(signalingSocket, config)
@@ -38,19 +50,19 @@ export function stop() {
   }
 }
 
-function buildPeer(signalingSocket: Socket, config: Config = defaultConfig): ID {
+function buildPeer(signalingSocket: Socket, config: Config): ID {
   const id = uuid()
   const peer = new RTCPeerConnection({ iceServers: config.iceServers })
-  console.log(id, 'build a peer')
+  logger.debug(id, 'build a peer')
   
   peer.onnegotiationneeded = async () => {
     try {
       const offer = await peer.createOffer()
       peer.setLocalDescription(offer)
       signalingSocket.emit('signal', { description: offer })
-      console.log(id, 'signal:', 'provided an offer')
+      logger.debug(id, 'signal:', 'provided an offer')
     } catch (err) {
-      console.error(id, 'signal', err)
+      logger.error(id, 'signal', err)
     }
   }
 
@@ -68,7 +80,7 @@ function buildPeer(signalingSocket: Socket, config: Config = defaultConfig): ID 
     channels.delete(id)
     off(id)
     peer.close()
-    console.log(id, `closed the peer: ${reason}`)
+    logger.debug(id, `closed the peer: ${reason}`)
   }
   
   peer.onicecandidate = ({candidate}: any) => signalingSocket.emit('signal', { candidate })
@@ -102,14 +114,14 @@ async function handleSignal(id: ID, peer: RTCPeerConnection, msg: any) {
   try {
     if (description && description.type === 'answer') {
       await peer.setRemoteDescription(description)
-      console.log(id, 'signal:', `accepted a remote ${description.type}`)
+      logger.debug(id, 'signal:', `accepted a remote ${description.type}`)
     } else if (candidate) {
       if (peer.remoteDescription && candidate.candidate) {
         await peer.addIceCandidate(candidate)
       }
     }
   } catch(err) {
-      console.error(id, err);
+      logger.error(id, err);
   }
 }
 
@@ -118,7 +130,7 @@ function buildChannel(id: ID, peer: RTCPeerConnection) {
   channels.set(id, channels.get(id) || new Set())
   
   channel.onopen = () => {
-    console.log(id, `data-channel:`, 'open')
+    logger.debug(id, `data-channel:`, 'open')
     for (let ch of channels.get(id) || []) { ch.close() }
     channels.get(id)?.add(channel)
     addClient(id)
@@ -128,7 +140,7 @@ function buildChannel(id: ID, peer: RTCPeerConnection) {
     })
   }
   channel.onclose = () => {
-    console.log(id, `data-channel:`, 'close')
+    logger.debug(id, `data-channel:`, 'close')
     channel.onerror = channel.onmessage = null
     channels.get(id)?.delete(channel)
     removeClient(id)
@@ -136,12 +148,12 @@ function buildChannel(id: ID, peer: RTCPeerConnection) {
   }
   channel.onerror = error => {
     if (error.error.message === 'Transport channel closed') return;
-    console.error(id, `data-channel:`, error)
+    logger.error(id, `data-channel:`, error)
     act(id, ACTIONS.ERROR, error)
   }
   channel.onmessage = msg => {
     const {action, attrs} = JSON.parse(msg.data)
-    console.log(id, `data-channel:`, action)
+    logger.debug(id, `data-channel:`, action)
     act(id, action, ...(attrs || []))
   }
 }
@@ -149,10 +161,10 @@ function buildChannel(id: ID, peer: RTCPeerConnection) {
 export function send(id: ID, action: Action, ...attrs: any) {
   channels.get(id)?.forEach(channel => {
     if(channel.readyState === 'open') {
-      console.log(id, 'send', action)
+      logger.debug(id, 'send', action)
       channel.send(JSON.stringify({action, attrs}))
     } else {
-      console.error(id, `could not send to a '${channel.readyState}' channel`, action)
+      logger.error(id, `could not send to a '${channel.readyState}' channel`, action)
     }
   })
 }

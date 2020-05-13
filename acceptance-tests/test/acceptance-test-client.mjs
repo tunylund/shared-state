@@ -14,7 +14,10 @@ const port = process.argv.find(arg => arg.startsWith('port=')).split('=')[1]
 log(`connecting to 'http://localhost:${port}'`)
 const disconnect = connect(`http://localhost:${port}`)
 
-process.on('disconnect', disconnect)
+process.on('disconnect', () => {
+  log('closing client')
+  disconnect()
+})
 process.on('message', msg => {
   log(msg)
   if(msg === 'getState') process.send(state())
