@@ -1,15 +1,15 @@
 {
-  "name": "gamestate-acceptance-tests",
+  "name": "shared-state-acceptance-tests",
   "version": "1.0.0",
-  "description": "Acceptance tests for gamestate-server and gamestate-client",
+  "description": "Acceptance tests for shared-state-server and shared-state-client",
   "main": "acceptance-test.ts",
   "type": "module",
   "scripts": {
-    "test": "npm update gamestate-server gamestate-client && jest"
+    "test": "npm update shared-state-server shared-state-client && jest"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/tunylund/gamestate"
+    "url": "https://github.com/tunylund/shared-state"
   },
   "author": "Tuomas Nylund",
   "license": "MIT",
@@ -17,8 +17,8 @@
     "@types/jest": "^25.2.1",
     "@types/node": "^13.13.5",
     "babel-jest": "^26.0.1",
-    "gamestate-client": "file:../client",
-    "gamestate-server": "file:../server",
+    "shared-state-client": "file:../client",
+    "shared-state-server": "file:../server",
     "jest": "^26.0.1",
     "socket.io-client": "^2.3.0",
     "ts-jest": "^25.5.1",

@@ -1,9 +1,4 @@
-import { on } from "./actions"
-
-export enum GAMESTATE {
-  INIT = 'gamestate-init',
-  UPDATE = 'gamestate-update'
-}
+import { on, ACTIONS } from "./actions"
 
 export type ID = string
 
@@ -16,11 +11,11 @@ let current: State = {
   lagStatistics: {}
 }
 
-on(GAMESTATE.INIT, (newState: State) => {
+on(ACTIONS.STATE_INIT, (newState: State) => {
   current = newState
 })
 
-on(GAMESTATE.UPDATE, (newState: State) => {
+on(ACTIONS.STATE_UPDATE, (newState: State) => {
   current = newState
 })
 

@@ -1,22 +1,33 @@
 {
-  "name": "gamestate-server",
-  "version": "1.0.0",
-  "description": "A library for synchronizing states between a server and multiple clients",
+  "name": "shared-state-server",
+  "version": "0.1.0",
+  "description": "A library for synchronizing states between a server and multiple clients using WebRTC and WebSockets",
+  "keywords": [
+    "shared",
+    "synchronized",
+    "shared state",
+    "synchronized state",
+    "state",
+    "webrtc",
+    "websockets",
+    "server",
+    "game"
+  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/tunylund/gamestate"
+    "url": "https://github.com/tunylund/shared-state"
   },
   "main": "./dist/index.js",
   "exports": "./dist/index.js",
   "type": "module",
   "types": "./dist/index.d.ts",
   "files": [
-    "./dist"
+    "dist/*"
   ],
   "scripts": {
     "build": "./build.sh",
-    "test": "jest",
-    "test:acceptance": "npm run build && jest acceptance-tests"
+    "release": "./publish.sh",
+    "test": "jest"
   },
   "author": "Tuomas Nylund",
   "license": "MIT",

@@ -1,8 +1,4 @@
 import { ID } from "./transport";
-export declare enum GAMESTATE {
-    INIT = "gamestate-init",
-    UPDATE = "gamestate-update"
-}
 export interface State {
     clients: ID[];
     lagStatistics: {

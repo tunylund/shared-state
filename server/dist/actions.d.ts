@@ -4,7 +4,9 @@ export declare enum ACTIONS {
     OPEN = "open",
     CLOSE = "close",
     ERROR = "error",
-    PING = "ping"
+    PING = "ping",
+    INIT = "state-init",
+    UPDATE = "state-update"
 }
 export declare function act(id: ID, action: Action, ...attrs: any[]): void;
 export declare function on(id: ID, action: Action, fn: Function): void;

@@ -1,6 +1,6 @@
 import { fork, ChildProcess, spawn, Serializable } from 'child_process'
 
-describe('gamestate-acceptance-tests', () => {
+describe('acceptance-tests', () => {
   
   let server: ChildProcess,
       port: number,

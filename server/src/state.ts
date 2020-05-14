@@ -1,11 +1,7 @@
 import { broadcast, ID, send } from "./transport"
 import deedDiff from 'deep-diff'
+import { ACTIONS } from "./actions"
 const { diff, applyChange } = deedDiff
-
-export enum GAMESTATE {
-  INIT = 'gamestate-init',
-  UPDATE = 'gamestate-update'
-}
 
 export interface State {
   clients: ID[]
@@ -24,7 +20,7 @@ export function init<T extends State>(state: Partial<T>) {
   current = JSON.parse(JSON.stringify(state))
   current.clients = []
   current.lagStatistics = {}
-  broadcast(GAMESTATE.INIT, current)
+  broadcast(ACTIONS.INIT, current)
 }
 
 export function update<T extends State>(state: Partial<T>) {
@@ -33,18 +29,18 @@ export function update<T extends State>(state: Partial<T>) {
   diff(current, state)?.map(d => {
     applyChange(current, state, d)
   })
-  broadcast(GAMESTATE.UPDATE, current)
+  broadcast(ACTIONS.UPDATE, current)
 }
 
 export function updateLag(id: ID, lag: number) {
   current.lagStatistics[id] = lag
-  send(id, GAMESTATE.UPDATE, current)
+  send(id, ACTIONS.UPDATE, current)
 }
 
 export function addClient(id: ID) {
   current.clients.push(id)
   current.lagStatistics[id] = Infinity
-  send(id, GAMESTATE.INIT, current)
+  send(id, ACTIONS.INIT, current)
   update(current)
 }
 

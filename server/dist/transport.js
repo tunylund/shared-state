@@ -1,7 +1,7 @@
 import socketIO from 'socket.io';
 import { v4 as uuid } from 'uuid';
 import { on, off, act, ACTIONS } from './actions.js';
-import { init, updateLag, addClient, removeClient } from './gamestate.js';
+import { init, updateLag, addClient, removeClient } from './state.js';
 // @ts-ignore
 import wrtc from 'wrtc';
 const { RTCPeerConnection } = wrtc;
@@ -21,10 +21,10 @@ function buildLogger(debugLog) {
         debug: () => { }
     };
 }
-export function start(httpServerOrPort, gameState, onConnect, config = defaultConfig) {
+export function start(httpServerOrPort, initialState, onConnect, config = defaultConfig) {
     if (signalingServer)
         close();
-    init(Object.assign({ clients: [], ...gameState }));
+    init(initialState);
     logger = buildLogger(config.debugLog);
     signalingServer = socketIO(httpServerOrPort, { transports: ['websocket'] });
     signalingServer.on('connection', signalingSocket => {

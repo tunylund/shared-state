@@ -6,6 +6,8 @@ export var ACTIONS;
     ACTIONS["CLOSE"] = "close";
     ACTIONS["ERROR"] = "error";
     ACTIONS["PING"] = "ping";
+    ACTIONS["INIT"] = "state-init";
+    ACTIONS["UPDATE"] = "state-update";
 })(ACTIONS || (ACTIONS = {}));
 export function act(id, action, ...attrs) {
     for (let fn of actions.get(id)?.get(action) || emptySet) {

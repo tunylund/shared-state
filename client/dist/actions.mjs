@@ -6,6 +6,8 @@ export var ACTIONS;
     ACTIONS["CLOSE"] = "close";
     ACTIONS["ERROR"] = "error";
     ACTIONS["PING"] = "ping";
+    ACTIONS["STATE_INIT"] = "state-init";
+    ACTIONS["STATE_UPDATE"] = "state-update";
 })(ACTIONS || (ACTIONS = {}));
 export function act(action, attrs = []) {
     var _a;

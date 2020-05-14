@@ -1,5 +1,5 @@
 import { createServer } from 'http'
-import { start, stop, state, update } from 'gamestate-server'
+import { start, stop, state, update } from 'shared-state-server'
 
 function send(message) {
   if (process.send) process.send(message)

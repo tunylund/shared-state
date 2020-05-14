@@ -1,7 +1,7 @@
 import socketIO, { Socket } from 'socket.io'
 import { v4 as uuid } from 'uuid'
 import { on, off, act, Action, ACTIONS } from './actions'
-import { init, updateLag, addClient, removeClient } from './gamestate'
+import { init, updateLag, addClient, removeClient } from './state'
 
 // @ts-ignore
 import wrtc from 'wrtc'
@@ -34,9 +34,9 @@ function buildLogger(debugLog: boolean) {
   }
 }
 
-export function start(httpServerOrPort: any, gameState: {}, onConnect: (id: ID) => void, config = defaultConfig) {
+export function start(httpServerOrPort: any, initialState: {}, onConnect: (id: ID) => void, config = defaultConfig) {
   if (signalingServer) close()
-  init(Object.assign({clients: [], ...gameState}))
+  init(initialState)
   logger = buildLogger(config.debugLog)
   signalingServer = socketIO(httpServerOrPort, { transports: ['websocket'] })
   signalingServer.on('connection', signalingSocket => {
