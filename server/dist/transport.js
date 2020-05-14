@@ -8,7 +8,8 @@ const { RTCPeerConnection } = wrtc;
 const defaultConfig = {
     iceServers: [],
     peerTimeout: 10000,
-    debugLog: false
+    debugLog: false,
+    fastButUnreliable: true
 };
 const channels = new Map();
 let signalingServer = null;
@@ -91,7 +92,14 @@ function buildPeer(signalingSocket, config) {
     signalingSocket.on('signal', onSignal);
     signalingSocket.on('disconnect', onDisconnect);
     signalingSocket.emit('signal', { id });
-    buildChannel(id, peer);
+    const channel = peer.createDataChannel('data-channel', {
+        negotiated: true,
+        id: 0,
+        ...(config.fastButUnreliable ?
+            { ordered: false, maxRetransmits: 0 } :
+            { ordered: true, maxPacketLifeTime: 300 })
+    });
+    buildChannel(id, channel);
     return id;
 }
 async function handleSignal(id, peer, msg) {
@@ -111,8 +119,7 @@ async function handleSignal(id, peer, msg) {
         logger.error(id, err);
     }
 }
-function buildChannel(id, peer) {
-    const channel = peer.createDataChannel('data-channel', { negotiated: true, id: 0 });
+function buildChannel(id, channel) {
     channels.set(id, channels.get(id) || new Set());
     channel.onopen = () => {
         logger.debug(id, `data-channel:`, 'open');
@@ -152,7 +159,7 @@ export function send(id, action, ...attrs) {
             channel.send(JSON.stringify({ action, attrs }));
         }
         else {
-            logger.error(id, `could not send to a '${channel.readyState}' channel`, action);
+            logger.debug(id, `could not send to a '${channel.readyState}' channel`, action);
         }
     });
 }

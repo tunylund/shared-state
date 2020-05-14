@@ -4,6 +4,7 @@ export interface Config {
     iceServers?: {}[];
     peerTimeout: number;
     debugLog: boolean;
+    fastButUnreliable: boolean;
 }
 export declare function start(httpServerOrPort: any, gameState: {}, onConnect: (id: ID) => void, config?: Config): void;
 export declare function stop(): void;

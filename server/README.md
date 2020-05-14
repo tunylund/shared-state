@@ -1,2 +1,4 @@
 # gamestate
-a library for synchronizing gamestate between client and server
+a library for synchronizing gamestate between multiple clients and one server
+
+# Get Started

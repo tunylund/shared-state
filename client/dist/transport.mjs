@@ -15,7 +15,13 @@ function buildPeer(socket, config) {
     peer.onsignalingstatechange = () => { if (peer.signalingState === 'closed')
         closePeer(peer, socket); };
     socket.on('signal', (msg) => handleSignal(msg, peer, socket));
-    addChannel(peer.createDataChannel('data-channel', { negotiated: true, id: 0 }), config);
+    addChannel(peer.createDataChannel('data-channel', {
+        negotiated: true,
+        id: 0,
+        ...(config.fastButUnreliable ?
+            { ordered: false, maxRetransmits: 0 } :
+            { ordered: true, maxPacketLifeTime: 300 })
+    }), config);
     return peer;
 }
 function closePeer(peer, socket) {
@@ -87,7 +93,8 @@ function stopLagPingPong() {
 }
 const defaultConfig = {
     lagInterval: 3000,
-    debugLog: false
+    debugLog: false,
+    fastButUnreliable: true
 };
 let logger = buildLogger(true);
 function buildLogger(debugLog) {

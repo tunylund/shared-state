@@ -13,11 +13,13 @@ export interface Config {
   iceServers?: {}[]
   peerTimeout: number
   debugLog: boolean
+  fastButUnreliable: boolean
 }
 const defaultConfig: Config = {
   iceServers: [],
   peerTimeout: 10000,
-  debugLog: false
+  debugLog: false,
+  fastButUnreliable: true
 }
 
 const channels = new Map<ID, Set<RTCDataChannel>>()
@@ -104,7 +106,14 @@ function buildPeer(signalingSocket: Socket, config: Config): ID {
   signalingSocket.on('disconnect', onDisconnect)
   signalingSocket.emit('signal', { id })
 
-  buildChannel(id, peer)
+  const channel = peer.createDataChannel('data-channel', {
+    negotiated: true,
+    id: 0,
+    ...(config.fastButUnreliable ?
+      { ordered: false, maxRetransmits: 0 } :
+      { ordered: true, maxPacketLifeTime: 300 })
+  })
+  buildChannel(id, channel)
 
   return id
 }
@@ -125,8 +134,7 @@ async function handleSignal(id: ID, peer: RTCPeerConnection, msg: any) {
   }
 }
 
-function buildChannel(id: ID, peer: RTCPeerConnection) {
-  const channel: RTCDataChannel = peer.createDataChannel('data-channel', {negotiated: true, id: 0})
+function buildChannel(id: ID, channel: RTCDataChannel) {
   channels.set(id, channels.get(id) || new Set())
   
   channel.onopen = () => {
@@ -164,7 +172,7 @@ export function send(id: ID, action: Action, ...attrs: any) {
       logger.debug(id, 'send', action)
       channel.send(JSON.stringify({action, attrs}))
     } else {
-      logger.error(id, `could not send to a '${channel.readyState}' channel`, action)
+      logger.debug(id, `could not send to a '${channel.readyState}' channel`, action)
     }
   })
 }

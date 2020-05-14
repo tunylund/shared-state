@@ -16,7 +16,13 @@ function buildPeer(socket: SocketIOClient.Socket, config: Config) {
 
   socket.on('signal', (msg: Signal) => handleSignal(msg, peer, socket))
 
-  addChannel(peer.createDataChannel('data-channel', { negotiated: true, id: 0 }), config)
+  addChannel(peer.createDataChannel('data-channel', {
+    negotiated: true,
+    id: 0,
+    ...(config.fastButUnreliable ?
+      { ordered: false, maxRetransmits: 0 } :
+      { ordered: true, maxPacketLifeTime: 300 })
+  }), config)
 
   return peer
 }
@@ -95,10 +101,12 @@ function stopLagPingPong() {
 interface Config {
   lagInterval: number
   debugLog: boolean
+  fastButUnreliable: boolean
 }
 const defaultConfig: Config = {
   lagInterval: 3000,
-  debugLog: false
+  debugLog: false,
+  fastButUnreliable: true
 }
 
 let logger = buildLogger(true)
