@@ -26,7 +26,6 @@
   ],
   "scripts": {
     "build": "./build.sh",
-    "release": "./publish.sh",
     "test": "jest"
   },
   "author": "Tuomas Nylund",

@@ -10,16 +10,20 @@
     "state",
     "webrtc",
     "websockets",
-    "server",
+    "client",
     "game"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/tunylund/shared-state"
   },
-  "main": "dist/index.mjs",
+  "main": "./dist/index.js",
+  "exports": "./dist/index.mjs",
   "types": "dist/index.d.ts",
   "type": "module",
+  "files": [
+    "dist/*"
+  ],
   "scripts": {
     "build": "./build.sh"
   },
