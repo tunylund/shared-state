@@ -3,12 +3,7 @@ set -e
 
 ./node_modules/.bin/tsc -p tsconfig.notests.json
 
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  SED="sed -i ''"
-else
-  SED="sed -i"
-fi
-
 for f in `find dist -name '*.js'`; do
-  $SED -e "s/from ['\"]\\.\\(.*\\)['\"]/from '\\.\\1.js'/g" $f
+  sed -i.bak -e "s/from ['\"]\.\(.*\)['\"]/from '\.\1.js'/g" $f
 done
+rm dist/*.bak
