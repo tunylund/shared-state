@@ -3,6 +3,8 @@ set -e
 
 ./node_modules/.bin/tsc
 
+which sed
+
 for f in `find dist -name '*.js'`; do
   target=`echo $f | sed -e 's/\\.js/\\.mjs/'`
   echo "converting $f to $target"
