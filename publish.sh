@@ -14,6 +14,7 @@ echo "publishing version $VERSION as $USER"
 (
   cd server
   npm version $VERSION --allow-same-version -m "Bump to version $VERSION"
+  npm shrinkwrap
   npm publish . --dry-run
 )
 (
