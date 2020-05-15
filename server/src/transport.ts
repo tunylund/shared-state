@@ -34,7 +34,7 @@ function buildLogger(debugLog: boolean) {
   }
 }
 
-export function start(httpServerOrPort: any, initialState: {}, onConnect: (id: ID) => void, config = defaultConfig) {
+export function start(httpServerOrPort: any, initialState: {}, onConnect: (id: ID) => any, config = defaultConfig) {
   if (signalingServer) close()
   init(initialState)
   logger = buildLogger(config.debugLog)

@@ -6,7 +6,7 @@ export interface Config {
     debugLog: boolean;
     fastButUnreliable: boolean;
 }
-export declare function start(httpServerOrPort: any, initialState: {}, onConnect: (id: ID) => void, config?: Config): void;
+export declare function start(httpServerOrPort: any, initialState: {}, onConnect: (id: ID) => any, config?: Config): void;
 export declare function stop(): void;
 export declare function send(id: ID, action: Action, ...attrs: any): void;
 export declare function broadcast(action: Action, ...attrs: any): void;

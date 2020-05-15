@@ -20,7 +20,7 @@ export function init<T extends State>(state: Partial<T>) {
   current = JSON.parse(JSON.stringify(state))
   current.clients = []
   current.lagStatistics = {}
-  broadcast(ACTIONS.INIT, current)
+  broadcast(ACTIONS.STATE_INIT, current)
 }
 
 export function update<T extends State>(state: Partial<T>) {
@@ -29,18 +29,18 @@ export function update<T extends State>(state: Partial<T>) {
   diff(current, state)?.map(d => {
     applyChange(current, state, d)
   })
-  broadcast(ACTIONS.UPDATE, current)
+  broadcast(ACTIONS.STATE_UPDATE, current)
 }
 
 export function updateLag(id: ID, lag: number) {
   current.lagStatistics[id] = lag
-  send(id, ACTIONS.UPDATE, current)
+  send(id, ACTIONS.STATE_UPDATE, current)
 }
 
 export function addClient(id: ID) {
   current.clients.push(id)
   current.lagStatistics[id] = Infinity
-  send(id, ACTIONS.INIT, current)
+  send(id, ACTIONS.STATE_INIT, current)
   update(current)
 }
 

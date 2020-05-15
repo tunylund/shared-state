@@ -22,4 +22,4 @@ set -e
     npm run test
 )
 
-echo "remember to commit all changes..."
+printf "\n \e[92mAll good! \o/ 🐶\n"

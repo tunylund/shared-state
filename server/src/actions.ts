@@ -9,8 +9,8 @@ export enum ACTIONS {
   CLOSE = 'close',
   ERROR = 'error',
   PING = 'ping',
-  INIT = 'state-init',
-  UPDATE = 'state-update'
+  STATE_INIT = 'state-init',
+  STATE_UPDATE = 'state-update'
 }
 
 export function act(id: ID, action: Action, ...attrs: any[]) {

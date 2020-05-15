@@ -13,7 +13,7 @@ export function init(state) {
     current = JSON.parse(JSON.stringify(state));
     current.clients = [];
     current.lagStatistics = {};
-    broadcast(ACTIONS.INIT, current);
+    broadcast(ACTIONS.STATE_INIT, current);
 }
 export function update(state) {
     state.clients = current.clients;
@@ -21,16 +21,16 @@ export function update(state) {
     diff(current, state)?.map(d => {
         applyChange(current, state, d);
     });
-    broadcast(ACTIONS.UPDATE, current);
+    broadcast(ACTIONS.STATE_UPDATE, current);
 }
 export function updateLag(id, lag) {
     current.lagStatistics[id] = lag;
-    send(id, ACTIONS.UPDATE, current);
+    send(id, ACTIONS.STATE_UPDATE, current);
 }
 export function addClient(id) {
     current.clients.push(id);
     current.lagStatistics[id] = Infinity;
-    send(id, ACTIONS.INIT, current);
+    send(id, ACTIONS.STATE_INIT, current);
     update(current);
 }
 export function removeClient(id) {
