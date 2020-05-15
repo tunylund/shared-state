@@ -1,0 +1,27 @@
+{
+  "name": "tiny-td-client",
+  "version": "1.0.0",
+  "description": "An example on using shared-state on the client side",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tunylund/shared-state"
+  },
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "./build.sh",
+    "watch": "http-server . & nodemon -w src -e ts -x npm run build",
+    "start": "http-server ."
+  },
+  "dependencies": {
+    "shared-state-client": "file:../../client",
+    "socket.io-client": "^2.3.0",
+    "tiny-game-engine": "git+ssh://git@github.com/tunylund/tiny-game-engine.git"
+  },
+  "author": "Tuomas Nylund",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^0.12.3",
+    "nodemon": "^2.0.3",
+    "typescript": "^3.8.3"
+  }
+}

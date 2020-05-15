@@ -79,17 +79,17 @@ function addChannel(channel, config) {
         act(action, attrs);
     };
 }
-let lagPing;
+let lagPingTimeout;
 function startLagPingPong(config) {
     function ping() {
         send(ACTIONS.PING, Date.now());
-        lagPing = setTimeout(ping, config.lagInterval);
+        lagPingTimeout = setTimeout(ping, config.lagInterval);
     }
     ping();
 }
 function stopLagPingPong() {
-    clearTimeout(lagPing);
-    lagPing = null;
+    clearTimeout(lagPingTimeout);
+    lagPingTimeout = null;
 }
 const defaultConfig = {
     lagInterval: 3000,

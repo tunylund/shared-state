@@ -85,17 +85,17 @@ function addChannel(channel: RTCDataChannel, config: Config) {
   }
 }
 
-let lagPing: any
+let lagPingTimeout: any
 function startLagPingPong(config: Config) {
   function ping() {
     send(ACTIONS.PING, Date.now())
-    lagPing = setTimeout(ping, config.lagInterval)
+    lagPingTimeout = setTimeout(ping, config.lagInterval)
   }
   ping()
 }
 function stopLagPingPong() {
-  clearTimeout(lagPing)
-  lagPing = null
+  clearTimeout(lagPingTimeout)
+  lagPingTimeout = null
 }
 
 interface Config {
