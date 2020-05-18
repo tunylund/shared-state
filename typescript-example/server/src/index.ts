@@ -1,7 +1,7 @@
 import { createServer } from 'http'
 import { start, state, update, on, State, ACTIONS } from 'shared-state-server'
 import {
-  loop, Entity, Controls, vector, XYZ,
+  loop, Entity, vector, XYZ,
   move, position, cube, xyz, mul
 } from 'tiny-game-engine'
 
@@ -32,7 +32,8 @@ start(server, {cubes: []}, (id: string) => {
   on(id, 'input', (dir: XYZ) => {
     const cube = state<GameState>().cubes.find(cube => cube.id === id)
     if (cube) {
-      cube.pos.vel = mul(vector(dir.radian, dir.size * 50), xyz(1, -1))
+      const speed = 80
+      cube.pos.vel = mul(vector(dir.radian, dir.size * speed), xyz(1, -1))
       update(state())
     }
   })
@@ -45,17 +46,21 @@ let steps = []
 loop((step, gameDuration) => {
   const current = state<GameState>()
   steps.push(step)
-  current.cubes.map(cube => {
-    cube.pos = move(cube.pos, step)
-  })
+  current.cubes.map(cube => cube.pos = move(cube.pos, step))
 }, {
   requestAnimationFrame: setImmediate,
   cancelAnimationFrame: clearImmediate
 })
 
-setInterval(()=>update(state()), Math.floor(1000/60))
+setInterval(()=> {
+  try {
+    update(state())
+  } catch (e) {
+    console.error(e)
+  }
+}, Math.floor(1000/60))
 
 server.listen(process.env.PORT || 0, () => {
   //@ts-ignore
-  console.log(`tiny-td is running at ${server.address().port}`)
+  console.log(`typescript-example-server is running at ${server.address().port}`)
 })

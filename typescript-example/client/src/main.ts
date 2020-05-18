@@ -22,13 +22,13 @@ setInterval(() => { updateFps = updates; updates = 0 }, 1000)
 loop((step, duration) => {
   const current = state<GameState>()
 
-  draw((ctx, cw, ch) => {
+  draw(function drawBackground(ctx, cw, ch) {
     const hue = current.cubes?.find(({id}: Cube) => id === myId)?.hue
     ctx.fillStyle = `hsla(${hue}, 50%, 75%, 1)`
     ctx.fillRect(-cw, -ch, cw*2, ch*2)
   })
 
-  draw((ctx: CanvasRenderingContext2D) => {
+  draw(function drawCubes(ctx: CanvasRenderingContext2D) {
     current.cubes?.map((cube: Cube) => {
       ctx.fillStyle = `hsla(${cube.hue}, 50%, 50%, 1)`
       ctx.strokeStyle = `hsla(${cube.hue}, 80%, 30%, 1)`
@@ -37,22 +37,15 @@ loop((step, duration) => {
     })
   })
 
-  draw((ctx, cw, ch) => {
-    if (current.lagStatistics?.hasOwnProperty(myId)) {
+  if (current.lagStatistics?.hasOwnProperty(myId)) {
+    draw(function drawHud(ctx, cw, ch) {
       const lag = current.lagStatistics[myId]
       const text = `lag: ${lag}ms   updates: ${updateFps}/s`
       ctx.font = '12px Arial'
       ctx.fillStyle = 'white'
       ctx.fillText(text, cw - 20 - ctx.measureText(text).width, -ch + 20)
-    }
-  })
+    })
+  }
 })
 
-const controls = buildControls(window, ({dir}) => send('input', dir))
-loop((step, gameDuration) => {
-  const current = state<GameState>()
-  // current.cubes?.map(cube => {
-  //   cube.pos = move(cube.pos, step)
-  // })
-  // send('input', controls.dir)
-})
+buildControls(window, ({dir}) => send('input', dir))
