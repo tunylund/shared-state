@@ -7,7 +7,7 @@ function send(message) {
 }
 
 function log(message) {
-  console.log('acceptance-test-server:', message)
+  console.log('integration-test-server:', message)
 }
 
 const initialState = JSON.parse(process.argv.find(arg => arg.startsWith('state=')).split('=')[1])

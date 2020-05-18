@@ -4,6 +4,6 @@
     "node_modules",
     "**/*.test.ts",
     "dist",
-    "acceptance-tests"
+    "integration-tests"
   ]
 }

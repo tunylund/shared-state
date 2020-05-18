@@ -7,7 +7,7 @@ global.RTCPeerConnection = wrtc.RTCPeerConnection
 global.io = io
 
 function log(message) {
-  console.log('acceptance-test-client:', message)
+  console.log('integration-test-client:', message)
 }
 
 const port = process.argv.find(arg => arg.startsWith('port=')).split('=')[1]
@@ -27,4 +27,4 @@ process.on('message', msg => {
 let myId = null
 on(ACTIONS.INIT, id => myId = id)
 on(ACTIONS.OPEN, () => process.send('connected'))
-on(ACTIONS.ERROR, err => console.error('acceptance-test-client:', err))
+on(ACTIONS.ERROR, err => console.error('integration-test-client:', err))

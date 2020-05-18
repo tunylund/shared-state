@@ -1,9 +1,9 @@
 {
-  "name": "shared-state-acceptance-tests",
+  "name": "shared-state-integration-tests",
   "version": "1.0.0",
   "description": "Acceptance tests for shared-state-server and shared-state-client",
   "homepage": "https://github.com/tunylund/shared-state",
-  "main": "acceptance-test.ts",
+  "main": "integration-test.ts",
   "type": "module",
   "scripts": {
     "test": "npm update shared-state-server shared-state-client && jest"

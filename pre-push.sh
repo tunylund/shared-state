@@ -16,7 +16,7 @@ set -e
     npm run test
 )
 (
-    cd acceptance-tests
+    cd integration-tests
     [ -d node_modules ] && npm i
     [ -d node_modules ] || npm ci
     npm run test
