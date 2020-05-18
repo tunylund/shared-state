@@ -1,5 +1,5 @@
 {
-  "name": "shared-state-ts-example",
+  "name": "shared-state-typescript-example",
   "version": "1.0.0",
   "description": "An example on how to use shared-state on the server side",
   "repository": {

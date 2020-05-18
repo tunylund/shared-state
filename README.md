@@ -41,7 +41,7 @@ on(ACTIONS.STATE_UPDATE, () => {...})
 ```
 
 # Server usage
-_A Simple example. For a more thorough example see the `ts-example` folder._
+_A Simple example. For a more thorough example see the `typescript-example` folder._
 ```
 npm i --save shared-state-server
 ```
@@ -74,7 +74,7 @@ node index.mjs
 ```
 
 # Client usage
-_A Simple example. For a more thorough example see the `ts-example` folder._
+_A Simple example. For a more thorough example see the `typescript-example` folder._
 ```
 npm i --save shared-state-client socket.io-client
 npm i --save-dev http-server
