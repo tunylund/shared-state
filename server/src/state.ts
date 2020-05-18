@@ -1,7 +1,5 @@
 import { broadcast, ID, send } from "./transport"
-import deedDiff from 'deep-diff'
 import { ACTIONS } from "./actions"
-const { diff, applyChange } = deedDiff
 
 export interface State {
   clients: ID[]
@@ -24,11 +22,8 @@ export function init<T extends State>(state: Partial<T>) {
 }
 
 export function update<T extends State>(state: Partial<T>) {
-  state.clients = current.clients
-  state.lagStatistics = current.lagStatistics
-  diff(current, state)?.map(d => {
-    applyChange(current, state, d)
-  })
+  const {clients, lagStatistics} = current
+  current = Object.assign(state, {clients, lagStatistics})
   broadcast(ACTIONS.STATE_UPDATE, current)
 }
 
