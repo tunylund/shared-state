@@ -118,13 +118,14 @@ function buildLogger(debugLog: boolean) {
   }
 }
 
-export function connect(url: string, config = defaultConfig): () => void {
+export function connect(url: string, config?: Partial<Config>): () => void {
+  const conf = {...defaultConfig, ...config}
   const socket = io.connect(url, { transports: ['websocket'] })
   let peer: RTCPeerConnection|null
-  logger = buildLogger(config.debugLog)
+  logger = buildLogger(conf.debugLog)
   socket.on('connect', () => {
     if (peer) closePeer(peer, socket)
-    peer = buildPeer(socket, config)
+    peer = buildPeer(socket, conf)
   })
   socket.on('disconnect', () => {
     if (peer) closePeer(peer, socket)

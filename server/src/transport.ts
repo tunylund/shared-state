@@ -34,13 +34,14 @@ function buildLogger(debugLog: boolean) {
   }
 }
 
-export function start(httpServerOrPort: any, initialState: {}, onConnect: (id: ID) => any, config = defaultConfig) {
+export function start(httpServerOrPort: any, initialState: {}, onConnect: (id: ID) => any, config?: Partial<Config>) {
+  const conf = {...defaultConfig, ...config}
   if (signalingServer) close()
   init(initialState)
-  logger = buildLogger(config.debugLog)
+  logger = buildLogger(conf.debugLog)
   signalingServer = socketIO(httpServerOrPort, { transports: ['websocket'] })
   signalingServer.on('connection', signalingSocket => {
-    const id = buildPeer(signalingSocket, config)
+    const id = buildPeer(signalingSocket, conf)
     onConnect(id)
   })
 }
