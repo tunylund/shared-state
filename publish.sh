@@ -13,11 +13,11 @@ echo "publishing version $VERSION as $USER"
 ./pre-push.sh
 (
   cd server
-  npm version $VERSION --allow-same-version -m "Bump to version $VERSION"
+  npm version $VERSION -m "Bump to version $VERSION"
   npm publish .
 )
 (
   cd client
-  npm version $VERSION --allow-same-version -m "Bump to version $VERSION"
+  npm version $VERSION -m "Bump to version $VERSION"
   npm publish .
 )
