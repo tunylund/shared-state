@@ -131,8 +131,12 @@ export function connect(url: string, config?: Partial<Config>): () => void {
     if (peer) closePeer(peer, socket)
     peer = null
   })
+  socket.on('error', (error: any) => act(ACTIONS.ERROR, [error]))
+  socket.on('disconnect', (error: any) => act(ACTIONS.ERROR, [error]))
   socket.on('connect_error', (error: any) => act(ACTIONS.ERROR, [error]))
   socket.on('connect_timeout', (error: any) => act(ACTIONS.ERROR, [error]))
+  socket.on('reconnect_error', (error: any) => act(ACTIONS.ERROR, [error]))
+  socket.on('reconnect_failed', (error: any) => act(ACTIONS.ERROR, [error]))
 
   return disconnect.bind({}, socket)
 }

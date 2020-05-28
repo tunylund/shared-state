@@ -171,7 +171,8 @@ export function send(id: ID, action: Action, ...attrs: any) {
   channels.get(id)?.forEach(channel => {
     if(channel.readyState === 'open') {
       logger.debug(id, 'send', action)
-      channel.send(JSON.stringify({action, attrs}))
+      try { channel.send(JSON.stringify({action, attrs})) }
+      catch (err) { logger.error(id, `could not send to a '${channel.readyState}' channel`, action) }
     } else {
       logger.debug(id, `could not send to a '${channel.readyState}' channel`, action)
     }
