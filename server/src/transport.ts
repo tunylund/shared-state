@@ -9,8 +9,14 @@ const { RTCPeerConnection } = wrtc
 
 export type ID = string
 
+interface RTCIceServer {
+  credential?: string | RTCOAuthCredential;
+  credentialType?: RTCIceCredentialType;
+  urls: string | string[];
+  username?: string;
+}
 export interface Config {
-  iceServers?: {}[]
+  iceServers?: RTCIceServer[]
   peerTimeout: number
   debugLog: boolean
   fastButUnreliable: boolean
@@ -41,6 +47,7 @@ export function start(httpServerOrPort: any, initialState: {}, onConnect: (id: I
   logger = buildLogger(conf.debugLog)
   signalingServer = socketIO(httpServerOrPort, { transports: ['websocket'] })
   signalingServer.on('connection', signalingSocket => {
+    signalingSocket
     const id = buildPeer(signalingSocket, conf)
     onConnect(id)
   })

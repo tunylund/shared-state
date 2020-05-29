@@ -2,8 +2,49 @@ import { act, ACTIONS } from './actions'
 
 const channels = new Set<RTCDataChannel>()
 
+export function connect(url: string, config?: Partial<Config>): () => void {
+  const conf = {...defaultConfig, ...config}
+  const socket = io.connect(url, { transports: ['websocket'] })
+  let peer: RTCPeerConnection|null
+  logger = buildLogger(conf.debugLog)
+  socket.on('connect', () => {
+    if (peer) closePeer(peer, socket)
+    peer = buildPeer(socket, conf)
+  })
+  socket.on('disconnect', () => {
+    if (peer) closePeer(peer, socket)
+    peer = null
+  })
+  socket.on('error', (error: any) => act(ACTIONS.ERROR, [error]))
+  socket.on('disconnect', (error: any) => act(ACTIONS.ERROR, [error]))
+  socket.on('connect_error', (error: any) => act(ACTIONS.ERROR, [error]))
+  socket.on('connect_timeout', (error: any) => act(ACTIONS.ERROR, [error]))
+  socket.on('reconnect_error', (error: any) => act(ACTIONS.ERROR, [error]))
+  socket.on('reconnect_failed', (error: any) => act(ACTIONS.ERROR, [error]))
+
+  return disconnect.bind({}, socket)
+}
+
+function disconnect(socket: SocketIOClient.Socket) {
+  socket && socket.close()
+  socket.off('connect')
+  socket.off('connect_error')
+  socket.off('connect_timeout')
+  socket.off('disconnect')
+}
+
+export function send(action: string, ...attrs: any[]) {
+  channels.forEach(channel => {
+    if(channel.readyState === 'open') {
+      channel.send(JSON.stringify({action, attrs}))
+    } else {
+      logger.error(`could not send to a ${channel.readyState} channel`, action)
+    }
+  })
+}
+
 function buildPeer(socket: SocketIOClient.Socket, config: Config) {
-  const peer = new RTCPeerConnection()
+  const peer = new RTCPeerConnection({ iceServers: config.iceServers })
   
   peer.onicecandidate = ({candidate}) => socket.emit('signal', {candidate})
   peer.oniceconnectionstatechange = () => {
@@ -102,11 +143,13 @@ interface Config {
   lagInterval: number
   debugLog: boolean
   fastButUnreliable: boolean
+  iceServers: RTCIceServer[]
 }
 const defaultConfig: Config = {
   lagInterval: 3000,
   debugLog: false,
-  fastButUnreliable: true
+  fastButUnreliable: true,
+  iceServers: []
 }
 
 let logger = buildLogger(true)
@@ -116,45 +159,4 @@ function buildLogger(debugLog: boolean) {
     error: console.error,
     debug: () => {}
   }
-}
-
-export function connect(url: string, config?: Partial<Config>): () => void {
-  const conf = {...defaultConfig, ...config}
-  const socket = io.connect(url, { transports: ['websocket'] })
-  let peer: RTCPeerConnection|null
-  logger = buildLogger(conf.debugLog)
-  socket.on('connect', () => {
-    if (peer) closePeer(peer, socket)
-    peer = buildPeer(socket, conf)
-  })
-  socket.on('disconnect', () => {
-    if (peer) closePeer(peer, socket)
-    peer = null
-  })
-  socket.on('error', (error: any) => act(ACTIONS.ERROR, [error]))
-  socket.on('disconnect', (error: any) => act(ACTIONS.ERROR, [error]))
-  socket.on('connect_error', (error: any) => act(ACTIONS.ERROR, [error]))
-  socket.on('connect_timeout', (error: any) => act(ACTIONS.ERROR, [error]))
-  socket.on('reconnect_error', (error: any) => act(ACTIONS.ERROR, [error]))
-  socket.on('reconnect_failed', (error: any) => act(ACTIONS.ERROR, [error]))
-
-  return disconnect.bind({}, socket)
-}
-
-function disconnect(socket: SocketIOClient.Socket) {
-  socket && socket.close()
-  socket.off('connect')
-  socket.off('connect_error')
-  socket.off('connect_timeout')
-  socket.off('disconnect')
-}
-
-export function send(action: string, ...attrs: any[]) {
-  channels.forEach(channel => {
-    if(channel.readyState === 'open') {
-      channel.send(JSON.stringify({action, attrs}))
-    } else {
-      logger.error(`could not send to a ${channel.readyState} channel`, action)
-    }
-  })
 }
