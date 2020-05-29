@@ -35,23 +35,24 @@ describe('state', () => {
 
   it('should broadcast updates on state changes', () => {
     update<SomeState>({some: 'new', another: 'state'})
-    expect(broadcast).toHaveBeenLastCalledWith(ACTIONS.STATE_UPDATE, {some: 'new', another: 'state', clients: [], lagStatistics: {}})
+    expect(broadcast).toHaveBeenLastCalledWith(ACTIONS.STATE_UPDATE, expect.anything())
   })
 
   it('should send init on new client join', () => {
     addClient('some-id')
     expect(send).toHaveBeenCalledWith('some-id', ACTIONS.STATE_INIT, {some: 'state', clients: ['some-id'], lagStatistics: { 'some-id': Infinity }})
+    expect(broadcast).toHaveBeenLastCalledWith(ACTIONS.STATE_UPDATE, expect.anything())
   })
 
   it('should send update on client removal', () => {
     addClient('some-id')
     removeClient('some-id')
-    expect(broadcast).toHaveBeenCalledWith(ACTIONS.STATE_UPDATE, {some: 'state', clients: [], lagStatistics: {}})
+    expect(broadcast).toHaveBeenLastCalledWith(ACTIONS.STATE_UPDATE, expect.anything())
   })
 
   it('should update lagStatistics', () => {
     updateLag('some-id', 1)
     expect(state()).toMatchObject({lagStatistics: new Map([['some-id', 1]])})
-    expect(send).toHaveBeenLastCalledWith('some-id', ACTIONS.STATE_UPDATE, expect.objectContaining({lagStatistics: {'some-id': 1}}))
+    expect(broadcast).toHaveBeenLastCalledWith(ACTIONS.STATE_UPDATE, expect.anything())
   })
 })

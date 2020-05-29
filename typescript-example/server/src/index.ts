@@ -60,7 +60,7 @@ setInterval(()=> {
   }
 }, Math.floor(1000/60))
 
-server.listen(process.env.PORT || 0, () => {
+server.listen(process.env.PORT || 3000, () => {
   //@ts-ignore
   console.log(`typescript-example-server is running at ${server.address().port}`)
 })

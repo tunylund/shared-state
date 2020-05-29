@@ -13,6 +13,7 @@
     "start": "http-server ."
   },
   "dependencies": {
+    "deep-diff": "^1.0.2",
     "shared-state-client": "file:../../client",
     "socket.io-client": "^2.3.0",
     "tiny-game-engine": "git+ssh://git@github.com/tunylund/tiny-game-engine.git"

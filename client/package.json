@@ -31,10 +31,12 @@
   "author": "Tuomas Nylund",
   "license": "MIT",
   "devDependencies": {
+    "@types/deep-diff": "^1.0.0",
     "@types/socket.io-client": "^1.4.32",
     "typescript": "^3.8.3"
   },
   "peerDependencies": {
-    "socket.io-client": "^2.3.0"
+    "socket.io-client": "^2.3.0",
+    "deep-diff": "^1.0.2"
   }
 }
