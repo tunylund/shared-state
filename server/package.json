@@ -23,7 +23,8 @@
   "type": "module",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist/*"
+    "dist/*",
+    "src/*"
   ],
   "scripts": {
     "build": "./build.sh",
