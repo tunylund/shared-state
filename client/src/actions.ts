@@ -5,10 +5,10 @@ export type Action = string
 
 export enum ACTIONS {
   INIT = 'init',
-  OPEN = "open",
-  CLOSE = "close",
-  ERROR = "error",
-  PING = "ping",
+  OPEN = 'open',
+  CLOSE = 'close',
+  ERROR = 'error',
+  PING = 'ping',
   STATE_INIT = 'state-init',
   STATE_UPDATE = 'state-update'
 }

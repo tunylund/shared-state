@@ -1,7 +1,7 @@
 import socketIO, { Socket } from 'socket.io'
 import { v4 as uuid } from 'uuid'
 import { on, off, act, Action, ACTIONS } from './actions'
-import { init, updateLag, addClient, removeClient } from './state'
+import { init, updateLag, addClient, removeClient, State } from './state'
 
 // @ts-ignore
 import wrtc from 'wrtc'
@@ -20,12 +20,14 @@ export interface Config {
   peerTimeout: number
   debugLog: boolean
   fastButUnreliable: boolean
+  path: string
 }
 const defaultConfig: Config = {
   iceServers: [],
   peerTimeout: 10000,
   debugLog: false,
-  fastButUnreliable: true
+  fastButUnreliable: true,
+  path: 'shared-state'
 }
 
 const channels = new Map<ID, Set<RTCDataChannel>>()
@@ -45,7 +47,7 @@ export function start(httpServerOrPort: any, initialState: {}, onConnect: (id: I
   if (signalingServer) close()
   init(initialState)
   logger = buildLogger(conf.debugLog)
-  signalingServer = socketIO(httpServerOrPort, { transports: ['websocket'] })
+  signalingServer = socketIO(httpServerOrPort, { transports: ['websocket'], path: conf.path })
   signalingServer.on('connection', signalingSocket => {
     signalingSocket
     const id = buildPeer(signalingSocket, conf)

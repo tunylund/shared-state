@@ -40,6 +40,8 @@ on(ACTIONS.INIT, (id: string) => myId = id)
 on(ACTIONS.STATE_UPDATE, () => {...})
 ```
 
+The server is available at: https://www.npmjs.com/package/shared-state-server
+
 # Server usage
 _A Simple example. For a more thorough example see the `ts-example` folder._
 ```
