@@ -40,6 +40,10 @@ on(ACTIONS.INIT, (id: string) => myId = id)
 on(ACTIONS.STATE_UPDATE, () => {...})
 ```
 
+This is library requires both a client library and a server library. Both available here:
+https://www.npmjs.com/package/shared-state-server
+https://www.npmjs.com/package/shared-state-client
+
 # Server usage
 _A Simple example. For a more thorough example see the `typescript-example` folder._
 ```

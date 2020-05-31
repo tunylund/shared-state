@@ -40,28 +40,30 @@ on(ACTIONS.INIT, (id: string) => myId = id)
 on(ACTIONS.STATE_UPDATE, () => {...})
 ```
 
-The server is available at: https://www.npmjs.com/package/shared-state-server
+This is library requires both a client library and a server library. Both available here:
+https://www.npmjs.com/package/shared-state-server
+https://www.npmjs.com/package/shared-state-client
 
 # Server usage
-_A Simple example. For a more thorough example see the `ts-example` folder._
+_A Simple example. For a more thorough example see the `typescript-example` folder._
 ```
 npm i --save shared-state-server
 ```
 
 ```
+// index.mjs
 import { createServer } from 'http'
-import { start, update, on, State } from 'shared-state-server'
+import { start, update, on } from 'shared-state-server'
 
 const server = createServer((req, res) => {})
 
-interface GameState extends State { someValue: number }
-const initialState: GameState = { someValue: 0 }
+const initialState = { someValue: 0 }
 
 function changeState(value) {
-  update<GameState>({ someValue: value })
+  update({ someValue: value })
 }
 
-function setupClient(id: string) {
+function setupClient(id) {
   on(id, 'input', changeState)
 }
 
@@ -70,16 +72,20 @@ start(server, initialState, setupClient)
 server.listen(3000, () => {
   console.log('a server with shared state is running at 3000')
 })
-
+```
+```
+node index.mjs
 ```
 
 # Client usage
-_A Simple example. For a more thorough example see the `ts-example` folder._
+_A Simple example. For a more thorough example see the `typescript-example` folder._
 ```
-npm i --save shared-state-client
+npm i --save shared-state-client socket.io-client
+npm i --save-dev http-server
 ```
 
 ```
+// main.mjs
 import {
   connect, send, on, ACTIONS, state
 } from 'node_modules/shared-state-client/dist/index.mjs'
@@ -91,12 +97,21 @@ on(ACTIONS.INIT, (id) => myId = id)
 on(ACTIONS.STATE_UPDATE, showState)
 
 function showState() {
-  document.body.innerText = state().value
+  document.body.innerText = state().someValue
 }
 
 document.body.addEventListener('keyup', () => {
   send('input', Math.random())
 })
+```
+```
+// index.html
+<script src="/node_modules/socket.io-client/dist/socket.io.js"></script>
+<script type="module" src="main.mjs"></script>
+```
+```
+./node_modules/.bin/http-server .
+open localhost:8080
 ```
 
 # API

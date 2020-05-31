@@ -34,4 +34,7 @@ set -e
     npm run build
 )
 
+cp README.md client/README.md
+cp README.md server/README.md
+
 printf "\n \e[92mAll good! \o/ 🐶\n"
