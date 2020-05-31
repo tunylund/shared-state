@@ -1,18 +1,9 @@
 import { on, ACTIONS } from './actions'
 import { Diff } from 'deep-diff'
 
-export type ID = string
+let current = {}
 
-export interface State {
-  clients: ID[]
-  lagStatistics: {[id: string]: number}
-}
-let current: State = {
-  clients: [],
-  lagStatistics: {}
-}
-
-function decompressKeys(diff: any): Diff<State, State> {
+function decompressKeys(diff: any): Diff<any, any> {
   const result: any = { kind: diff.k }
   if (diff.hasOwnProperty('p')) result.path = diff.p
   if (diff.hasOwnProperty('l')) result.lhs = diff.l
@@ -22,13 +13,13 @@ function decompressKeys(diff: any): Diff<State, State> {
   return result
 }
 
-on(ACTIONS.STATE_INIT, (newState: State) => current = newState)
+on(ACTIONS.STATE_INIT, (newState: any) => current = newState)
 
-on(ACTIONS.STATE_UPDATE, (diffs: Array<Diff<State, State>>) => {
+on(ACTIONS.STATE_UPDATE, (diffs: Array<Diff<any, any>>) => {
   // @ts-ignore
   diffs.map(decompressKeys).map(diff => DeepDiff.applyChange(current, diff))
 })
 
-export function state<T extends State>(): T {
+export function state<T>(): T {
   return current as T
 }

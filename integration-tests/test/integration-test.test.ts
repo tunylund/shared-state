@@ -60,6 +60,7 @@ describe('integration-tests', () => {
   const changeState = (state: Serializable) => send<any>(server, state)
   const getClientId = () => send<string>(client, 'getId')
   const getClientState = () => send<Serializable>(client, 'getState')
+  const getLagStatistics = () => send<Serializable>(client, 'getStatistics')
   const waitForConsistency = () => new Promise(resolve => setTimeout(resolve, 250))
 
   it('should maintain knowledge of which clients are joined', async () => {
@@ -85,8 +86,8 @@ describe('integration-tests', () => {
 
   it('should send lag statistics periodically to the connected clients', async () => {
     await waitForConsistency()
-    expect(await getClientState()).toMatchObject({
-      lagStatistics: expect.anything()
-    })
+    const stats = await getLagStatistics()
+    expect(Object.values(stats)).toHaveLength(1)
+    expect(Object.values(stats)[0]).toHaveProperty('lag')
   })
 })

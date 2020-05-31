@@ -10,7 +10,8 @@ export enum ACTIONS {
   ERROR = 'error',
   PING = 'ping',
   STATE_INIT = 'state-init',
-  STATE_UPDATE = 'state-update'
+  STATE_UPDATE = 'state-update',
+  CLIENT_UPDATE = 'client-update'
 }
 
 export function act(id: ID, action: Action, ...attrs: any[]) {

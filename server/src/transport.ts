@@ -1,10 +1,10 @@
 import socketIO, { Socket } from 'socket.io'
 import { v4 as uuid } from 'uuid'
-import { on, off, act, Action, ACTIONS } from './actions'
-import { init, updateLag, addClient, removeClient, State } from './state'
-
+import { init } from './state'
 // @ts-ignore
 import wrtc from 'wrtc'
+import logger, { setLogLevel } from './logger'
+import { destroyClient, createClient } from './clients'
 const { RTCPeerConnection } = wrtc
 
 export type ID = string
@@ -27,26 +27,16 @@ const defaultConfig: Config = {
   peerTimeout: 10000,
   debugLog: false,
   fastButUnreliable: true,
-  path: 'shared-state'
+  path: '/shared-state'
 }
 
-const channels = new Map<ID, Set<RTCDataChannel>>()
 let signalingServer: socketIO.Server|null = null
-
-let logger = buildLogger(true)
-function buildLogger(debugLog: boolean) {
-  return debugLog ? console : {
-    log: console.log,
-    error: console.error,
-    debug: () => {}
-  }
-}
 
 export function start(httpServerOrPort: any, initialState: {}, onConnect: (id: ID) => any, config?: Partial<Config>) {
   const conf = {...defaultConfig, ...config}
   if (signalingServer) close()
   init(initialState)
-  logger = buildLogger(conf.debugLog)
+  setLogLevel(conf.debugLog)
   signalingServer = socketIO(httpServerOrPort, { transports: ['websocket'], path: conf.path })
   signalingServer.on('connection', signalingSocket => {
     signalingSocket
@@ -88,9 +78,7 @@ function buildPeer(signalingSocket: Socket, config: Config): ID {
     signalingSocket.off('signal', onSignal)
     signalingSocket.off('disconnect', onDisconnect)
     signalingSocket.disconnect(true)
-    act(id, ACTIONS.CLOSE)
-    channels.delete(id)
-    off(id)
+    destroyClient(id)
     peer.close()
     logger.debug(id, `closed the peer: ${reason}`)
   }
@@ -123,7 +111,7 @@ function buildPeer(signalingSocket: Socket, config: Config): ID {
       { ordered: false, maxRetransmits: 0 } :
       { ordered: true, maxPacketLifeTime: 300 })
   })
-  buildChannel(id, channel)
+  createClient(id, channel)
 
   return id
 }
@@ -144,58 +132,3 @@ async function handleSignal(id: ID, peer: RTCPeerConnection, msg: any) {
   }
 }
 
-function buildChannel(id: ID, channel: RTCDataChannel) {
-  channels.set(id, channels.get(id) || new Set())
-  
-  channel.onopen = () => {
-    logger.debug(id, `data-channel:`, 'open')
-    for (let ch of channels.get(id) || []) { ch.close() }
-    channels.get(id)?.add(channel)
-    addClient(id)
-    act(id, ACTIONS.OPEN)
-    on(id, ACTIONS.PING, (theirTime: number) => {
-      updateLag(id, Date.now() - theirTime)
-    })
-  }
-  channel.onclose = () => {
-    logger.debug(id, `data-channel:`, 'close')
-    channel.onerror = channel.onmessage = null
-    channels.get(id)?.delete(channel)
-    removeClient(id)
-    act(id, ACTIONS.CLOSE)
-  }
-  channel.onerror = error => {
-    if (error.error.message === 'Transport channel closed') return;
-    logger.error(id, `data-channel:`, error)
-    act(id, ACTIONS.ERROR, error)
-  }
-  channel.onmessage = msg => {
-    const {action, attrs} = JSON.parse(msg.data)
-    logger.debug(id, `data-channel:`, action)
-    act(id, action, ...(attrs || []))
-  }
-}
-
-export function send(id: ID, action: Action, ...attrs: any) {
-  channels.get(id)?.forEach(channel => {
-    if(channel.readyState === 'open') {
-      logger.debug(id, 'send', action)
-      try { channel.send(JSON.stringify({action, attrs})) }
-      catch (err) { logger.error(id, `could not send to a '${channel.readyState}' channel`, action) }
-    } else {
-      logger.debug(id, `could not send to a '${channel.readyState}' channel`, action)
-    }
-  })
-}
-
-export function broadcast(action: Action, ...attrs: any) {
-  for (let id of channels.keys()) {
-    send(id, action, ...attrs)
-  }
-}
-
-export function broadcastToOthers(notThisId: ID, action: Action, ...attrs: any) {
-  for (let id of channels.keys()) {
-    if (id !== notThisId) send(id, action, ...attrs)
-  }
-}

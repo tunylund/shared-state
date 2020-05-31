@@ -1,5 +1,5 @@
 import { createServer } from 'http'
-import { start, stop, state, update } from 'shared-state-server'
+import { start, stop, state, update, clients } from 'shared-state-server'
 
 function send(message) {
   if (process.send) process.send(message)
@@ -22,7 +22,7 @@ process.on('disconnect', () => {
 
 process.on('message', msg => {
   log(msg)
-  if (msg === 'listClients') send(state().clients)
+  if (msg === 'listClients') send(clients())
   else {
     update(msg)
     send(state())

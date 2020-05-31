@@ -1,7 +1,7 @@
 //@ts-ignore
 import wrtc from 'wrtc'
 import io from 'socket.io-client'
-import { connect, on, ACTIONS, state } from 'shared-state-client'
+import { connect, on, ACTIONS, state, statistics } from 'shared-state-client'
 import DeepDiff from 'deep-diff'
 
 global.RTCPeerConnection = wrtc.RTCPeerConnection
@@ -23,6 +23,7 @@ process.on('disconnect', () => {
 process.on('message', msg => {
   log(msg)
   if(msg === 'getState') process.send(state())
+  if(msg === 'getStatistics') process.send(statistics())
   if(msg === 'getId') process.send(myId)
 })
 

@@ -1,12 +1,12 @@
 import { act, ACTIONS } from './actions'
-
-const channels = new Set<RTCDataChannel>()
+import logger, { setLogLevel } from './logger'
+import { addChannel } from './client'
 
 export function connect(url: string, config?: Partial<Config>): () => void {
   const conf = {...defaultConfig, ...config}
-  const socket = io.connect(url, { transports: ['websocket'] })
+  const socket = io.connect(url, { transports: ['websocket'], path: conf.path })
   let peer: RTCPeerConnection|null
-  logger = buildLogger(conf.debugLog)
+  setLogLevel(conf.debugLog)
   socket.on('connect', () => {
     if (peer) closePeer(peer, socket)
     peer = buildPeer(socket, conf)
@@ -33,16 +33,6 @@ function disconnect(socket: SocketIOClient.Socket) {
   socket.off('disconnect')
 }
 
-export function send(action: string, ...attrs: any[]) {
-  channels.forEach(channel => {
-    if(channel.readyState === 'open') {
-      channel.send(JSON.stringify({action, attrs}))
-    } else {
-      logger.error(`could not send to a ${channel.readyState} channel`, action)
-    }
-  })
-}
-
 function buildPeer(socket: SocketIOClient.Socket, config: Config) {
   const peer = new RTCPeerConnection({ iceServers: config.iceServers })
   
@@ -63,7 +53,7 @@ function buildPeer(socket: SocketIOClient.Socket, config: Config) {
     ...(config.fastButUnreliable ?
       { ordered: false, maxRetransmits: 0 } :
       { ordered: true, maxPacketLifeTime: 300 })
-  }), config)
+  }), config.lagInterval)
 
   return peer
 }
@@ -100,63 +90,17 @@ async function handleSignal({ id, description, candidate }: Signal, peer: RTCPee
   }
 }
 
-function addChannel(channel: RTCDataChannel, config: Config) {
-  channel.onopen = () => {
-    logger.debug(`data-channel-${channel.id}:`, 'open')
-    for (let ch of channels) { ch.close() }
-    channels.add(channel)
-    act(ACTIONS.OPEN)
-    startLagPingPong(config)
-  }
-  channel.onclose = () => {
-    logger.debug(`data-channel-${channel.id}:`, 'close')
-    act(ACTIONS.CLOSE)
-    channel.onerror = channel.onmessage = null
-    channels.delete(channel)
-    if (channels.size === 0) stopLagPingPong()
-  }
-  channel.onerror = error => {
-    if (error.error.message === 'Transport channel closed') return;
-    logger.error(`data-channel-${channel.id}:`, error)
-    act(ACTIONS.ERROR, [error])
-  }
-  channel.onmessage = msg => {
-    const {action, attrs} = JSON.parse(msg.data)
-    act(action, attrs)
-  }
-}
-
-let lagPingTimeout: any
-function startLagPingPong(config: Config) {
-  function ping() {
-    send(ACTIONS.PING, Date.now())
-    lagPingTimeout = setTimeout(ping, config.lagInterval)
-  }
-  ping()
-}
-function stopLagPingPong() {
-  clearTimeout(lagPingTimeout)
-  lagPingTimeout = null
-}
-
 interface Config {
   lagInterval: number
   debugLog: boolean
   fastButUnreliable: boolean
   iceServers: RTCIceServer[]
+  path: string
 }
 const defaultConfig: Config = {
   lagInterval: 3000,
   debugLog: false,
   fastButUnreliable: true,
-  iceServers: []
-}
-
-let logger = buildLogger(true)
-function buildLogger(debugLog: boolean) {
-  return debugLog ? console : {
-    log: console.log,
-    error: console.error,
-    debug: () => {}
-  }
+  iceServers: [],
+  path: '/shared-state'
 }

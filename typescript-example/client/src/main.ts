@@ -1,11 +1,11 @@
 import { loop, Entity, draw, buildControls } from 'tiny-game-engine/lib/index'
-import { connect, send, on, ACTIONS, state, State } from 'shared-state-client/dist/index'
+import { connect, send, on, ACTIONS, state, statistics } from 'shared-state-client/dist/index'
 
 interface Cube extends Entity {
   id: string
   hue: number
 }
-interface GameState extends State {
+interface GameState {
   clients: string[]
   cubes: Cube[]
 }
@@ -37,9 +37,9 @@ loop((step, duration) => {
     })
   })
 
-  if (current.lagStatistics?.hasOwnProperty(myId)) {
+  if (statistics().hasOwnProperty(myId)) {
     draw(function drawHud(ctx, cw, ch) {
-      const lag = current.lagStatistics[myId]
+      const { lag } = statistics()[myId]
       const text = `lag: ${lag}ms   updates: ${updateFps}/s`
       ctx.font = '12px Arial'
       ctx.fillStyle = 'white'

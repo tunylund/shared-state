@@ -1,5 +1,5 @@
 import { createServer } from 'http'
-import { start, state, update, on, State, ACTIONS } from 'shared-state-server'
+import { start, state, update, on, ACTIONS } from 'shared-state-server'
 import {
   loop, Entity, vector, XYZ,
   move, position, cube, xyz, mul
@@ -9,7 +9,7 @@ interface Cube extends Entity {
   id: string
   hue: number
 }
-interface GameState extends State {
+interface GameState {
   cubes: Cube[]
 }
 

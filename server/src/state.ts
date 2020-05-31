@@ -1,30 +1,26 @@
-import { broadcast, ID, send } from "./transport"
+import { ID } from "./transport"
 import { ACTIONS } from "./actions"
 import deepDiff from 'deep-diff'
 import rfdc from 'rfdc'
+import { broadcast, send } from "./clients"
 
 const deepClone = rfdc()
 
-export interface State {
-  clients: ID[]
-  lagStatistics: {[id: string]: number}
-}
-let current: State = {
-  clients: [],
-  lagStatistics: {}
-}
+let current = {}
 let clone = deepClone(current)
 
-export function state<T extends State>(): T {
+export function state<T>(): T {
   return clone as T
 }
 
-export function init<T extends State>(state: Partial<T>) {
-  current = deepClone({ ...state }) as T
-  current.clients = []
-  current.lagStatistics = {}
+export function init<T>(state: T) {
+  current = deepClone(state)
   clone = deepClone(current)
   broadcast(ACTIONS.STATE_INIT, current)
+}
+
+export function initState(id: ID) {
+  send(id, ACTIONS.STATE_INIT, state())
 }
 
 function compressKeys(diff: any): any {
@@ -37,34 +33,11 @@ function compressKeys(diff: any): any {
   return result
 }
 
-export function update<T extends State>(state: T) {
-  const {clients, lagStatistics} = current
-  const newState = { clients, lagStatistics, ...state }
-  const diffs = deepDiff.diff(current, newState)
+export function update<T>(state: T) {
+  const diffs = deepDiff.diff(current, state)
   if (diffs && diffs.length > 0) {
-    diffs.map(d => deepDiff.applyChange(current, newState, d))
+    diffs.map(d => deepDiff.applyChange(current, state, d))
     broadcast(ACTIONS.STATE_UPDATE, diffs.map(compressKeys))
     clone = deepClone(current)
   }
-}
-
-export function updateLag(id: ID, lag: number) {
-  const cur = state()
-  cur.lagStatistics[id] = lag
-  update(cur)
-}
-
-export function addClient(id: ID) {
-  const cur = state()
-  cur.clients.push(id)
-  cur.lagStatistics[id] = Infinity
-  send(id, ACTIONS.STATE_INIT, cur)
-  update(cur)
-}
-
-export function removeClient(id: ID) {
-  const cur = state()
-  cur.clients.splice(cur.clients.indexOf(id), 1)
-  delete cur.lagStatistics[id]
-  update(cur)
 }
