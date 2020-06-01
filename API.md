@@ -29,8 +29,11 @@
   that utilize NATs (most do).
     * TURN servers will provide a proxy for clients that cannot
   establish WebRTC connections directly
+    * see https://webrtc.org/getting-started/turn-server
+
+    If your not doing just `localhost`, you will definitely need STUN and TURN Servers.
   
-    Your best bet of getting them is pay for it or build them or google heavily,
+    Your best bet of getting them is pay for it (e.g. https://twilio.com) or host an open source server. (e.g. https://github.com/coturn/coturn).
 
   * `peerTimeout: number (default 10000)`: Timeout in milliseconds for closing a peer when a client attempts to connect but cannot finalize the communication setup phase.
 
@@ -64,13 +67,20 @@
 
     Update the state and broadcast to all known clients.
 
+  ```typescript
+  interface GameState { someValue: string }
+  const current = state<GameState>()
+  current.someValue = 'new-value'
+  update<GameState>(current)
+  ```
+
 ### Events
 
 * `on(id: string, action: string, fn: Function)`
 
   Register a function that will be called when the the defined `action`
   is triggered from the client with the defined `id` using the `send` function.
-  ```
+  ```typescript
   on('some-client-id', 'say-hello', (msg) => console.log(msg))
   ```
 
@@ -112,8 +122,8 @@
 
 * `send(action: string, ...attrs: any[])`: Send a message to the server.
 
-  ```
-  send('say-hello', 'hello')
+  ```typescript
+  send('say-hello', 'honey!', 'i do be home!')
   ```
 
 ### Events
@@ -141,6 +151,8 @@ _(because all libraries need events)_
 ### State Management
 
 * `state<T>(): T`: Get the current state. You can use the type definition T to make the return value be typed.
-  ```
+  ```typescript
+  interface GameState { someValue: string }
   const current = state<GameState>()
+  console.log(current.someValue)
   ```
