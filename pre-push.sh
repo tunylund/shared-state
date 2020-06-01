@@ -36,5 +36,6 @@ set -e
 
 cp README.md client/README.md
 cp README.md server/README.md
+cp README.md docs/README.md
 
 printf "\n \e[92mAll good! \o/ 🐶\n"

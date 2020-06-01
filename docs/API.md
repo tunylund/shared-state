@@ -4,6 +4,22 @@
 
 ### Setup
 
+* `start(httpServerOrPort, initialState: {}, onConnect, config)` Initializes the SharedState server. This will open websocket and webrtc communication in the defined httpServer or portnumber.
+  
+  * `httpServerOrPort: Server|number`: An instance of http(s).Server or a port number. The Server will be bound to provide a websocket interface for establishing the connections. This will be directly passed to Socket.io.
+
+  * `initialState: {}`: An object that contains the values for the initial state.
+
+  * `onConnect: (id: string) => any`: when a new client connects, this callback will be called with the uuid of the new client.
+
+  * `config: Config`: Configuration of the system.
+
+* `stop()`
+
+  Stop any active SharedState instances
+
+### Setup
+
 * `start(httpServerOrPort, initialState, onConnect, config: Partial<Config>)`
 
     Initializes the SharedState server. This will open websocket and webrtc communication in the defined httpServer or portnumber.
