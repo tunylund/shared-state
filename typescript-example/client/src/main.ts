@@ -1,5 +1,5 @@
 import { loop, Entity, draw, buildControls } from 'tiny-game-engine/lib/index'
-import { connect, send, on, ACTIONS, state, statistics } from 'shared-state-client/dist/index'
+import { connect, send, on, ACTIONS, state, statistics } from 'shared-state-client'
 
 interface Cube extends Entity {
   id: string

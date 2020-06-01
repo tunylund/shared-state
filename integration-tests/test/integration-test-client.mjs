@@ -2,11 +2,9 @@
 import wrtc from 'wrtc'
 import io from 'socket.io-client'
 import { connect, on, ACTIONS, state, statistics } from 'shared-state-client'
-import DeepDiff from 'deep-diff'
 
 global.RTCPeerConnection = wrtc.RTCPeerConnection
 global.io = io
-global.DeepDiff = DeepDiff
 
 function log(message) {
   console.log('integration-test-client:', message)

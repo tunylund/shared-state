@@ -19,7 +19,7 @@
     "url": "https://github.com/tunylund/shared-state"
   },
   "main": "./dist/index.js",
-  "exports": "./dist/index.mjs",
+  "exports": "./dist/bundle.mjs",
   "types": "dist/index.d.ts",
   "type": "module",
   "files": [
@@ -32,12 +32,16 @@
   "author": "Tuomas Nylund",
   "license": "MIT",
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^12.0.0",
+    "@rollup/plugin-node-resolve": "^8.0.0",
     "@types/deep-diff": "^1.0.0",
     "@types/socket.io-client": "^1.4.32",
+    "deep-diff": "^1.0.2",
+    "rollup": "^2.12.0",
+    "rollup-plugin-terser": "^6.1.0",
     "typescript": "^3.8.3"
   },
   "peerDependencies": {
-    "socket.io-client": "^2.3.0",
-    "deep-diff": "^1.0.2"
+    "socket.io-client": "^2.3.0"
   }
 }
