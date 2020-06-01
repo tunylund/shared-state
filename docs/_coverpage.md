@@ -7,7 +7,7 @@
  •  •  •
 ```
 
-# Shared-State <small>client, server 😬</small>
+# Shared-State <small> .js magic ☄️ 😬</small>
 
 > Synchronized state between a server and multiple clients
 
