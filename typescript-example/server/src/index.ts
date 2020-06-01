@@ -17,7 +17,7 @@ function addCube(id: string) {
   const current = state<GameState>()
   const hue = Math.floor(Math.random() * 360)
   current.cubes.push({
-    id, pos: position(), dim: cube(20), hue
+    id, pos: position(), dim: cube(20), hue, dir: xyz()
   })
 }
 

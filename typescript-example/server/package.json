@@ -21,7 +21,7 @@
     "typescript": "^3.8.3"
   },
   "dependencies": {
-    "tiny-game-engine": "git@github.com:tunylund/tiny-game-engine.git",
+    "tiny-game-engine": "tunylund/tiny-game-engine",
     "shared-state-server": "../../server"
   }
 }
