@@ -46,7 +46,7 @@ https://www.npmjs.com/package/shared-state-server
 
 https://www.npmjs.com/package/shared-state-client
 
-# Server usage
+## Server usage
 
 ```
 npm i --save shared-state-server
@@ -79,7 +79,7 @@ server.listen(3000, () => {
 node index.mjs
 ```
 
-# Client usage
+## Client usage
 _A Simple example. For a more thorough example see the `typescript-example` folder._
 ```
 npm i --save shared-state-client socket.io-client
@@ -121,8 +121,6 @@ open localhost:8080
 The `shared-state-client` depends on `socket.io-client` library to be available in the global namespace. as the `io` object. Unfortunately it's a large library so it's best be left outside the library bundle file.
 
 See: https://socket.io/docs/client-api/
-
-
 
 
 # API
