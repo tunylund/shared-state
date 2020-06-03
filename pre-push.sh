@@ -1,5 +1,6 @@
 #!/bin/sh
 set -e
+grep -HnR --include "*.test.ts" "only" . && printf "\n\e[91mFound a test with '.only'-modifier. please remove it.\n" && exit 1
 
 (
     cd client
