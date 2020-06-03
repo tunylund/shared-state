@@ -20,7 +20,8 @@ describe('integration-tests', () => {
   function buildServer(): Promise<[ChildProcess, number]> {
     const initialState = {state: 'initial'}
     return new Promise((resolve, reject) => {
-      const server = fork('./test/integration-test-server.js', [`state=${JSON.stringify(initialState)}`], {silent: true})
+      const server = spawn('node', ['--experimental-modules', './test/integration-test-server.js', `state=${JSON.stringify(initialState)}`], { stdio: ['ipc'] })
+      // const server = fork('./test/integration-test-server.js', [`state=${JSON.stringify(initialState)}`], {silent: true})
       server.stdout?.pipe(process.stdout)
       server.stderr?.pipe(process.stderr)
       server.on('close', () => console.log('server closed'))

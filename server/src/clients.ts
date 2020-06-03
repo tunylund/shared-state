@@ -4,16 +4,15 @@ import { act, ACTIONS, on, Action, off } from "./actions"
 import { initState } from "./state"
 
 interface Statistic {lag: number}
-
 const channels = new Map<ID, Set<RTCDataChannel>>()
-const stats = new Map<ID, Statistic>()
+const stats: {[id: string]: Statistic} = {}
 
 export function clients() {
   return Array.from(channels.keys())
 }
 
 export function statistics() {
-  return Object.fromEntries(stats.entries())
+  return stats
 }
 
 export function createClient(id: ID, channel: RTCDataChannel) {
@@ -41,7 +40,7 @@ export function createClient(id: ID, channel: RTCDataChannel) {
 export function destroyClient(id: ID) {
   channels.get(id)?.forEach(ch => ch.close())
   channels.delete(id)
-  stats.delete(id)
+  delete stats[id]
   act(id, ACTIONS.CLOSE)
   off(id)
   updateClientStates()
@@ -84,8 +83,8 @@ function ensureChannelSetExists(id: ID): Set<RTCDataChannel> {
 }
 
 function ensureStatsExist(id: ID): Statistic {
-  const stat = stats.get(id) || {lag: Infinity}
-  stats.set(id, stat)
+  const stat = stats[id] || {lag: Infinity}
+  stats[id] = stat
   return stat
 }
 
