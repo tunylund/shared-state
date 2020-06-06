@@ -146,10 +146,10 @@ See: https://socket.io/docs/client-api/
     difficult networks. ICE servers are a combination of STUN servers and TURN servers.
       
       * STUN servers allow WebRTC to get real ips in networks 
-      that utilize NATs (most do).
+      that utilize NATs (most do). e.g. with `stun:localhost`
       
       * TURN servers will provide a proxy for clients that cannot
-      establish WebRTC connections directly
+      establish WebRTC connections directly. e.g. with `turn:localhost`
       
       For more information, see https://webrtc.org/getting-started/turn-server
 
@@ -258,7 +258,7 @@ See: https://socket.io/docs/client-api/
 
 * `interface Config`
 
-  * `iceServers: { urls: string|string[], username?: string, credential?: string }[]` _= []_ : Should be the same value as server configuration for ice servers.
+  * `iceServers: { urls: string|string[], username?: string, credential?: string }[]` _= []_ : See iceServers for shared-state-server configuration. You might want to have both client and server have the same configuration.
 
   * `lagInterval: number` _= 3000_ : An interval in milliseconds for performing lagChecks. The result of the lagchecks are available from the `statistics()` function.
 
