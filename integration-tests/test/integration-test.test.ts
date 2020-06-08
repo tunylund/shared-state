@@ -62,7 +62,7 @@ describe('integration-tests', () => {
   const getClientId = () => send<string>(client, 'getId')
   const getClientState = () => send<Serializable>(client, 'getState')
   const getLagStatistics = () => send<Serializable>(client, 'getStatistics')
-  const waitForConsistency = () => new Promise(resolve => setTimeout(resolve, 250))
+  const waitForConsistency = () => new Promise(resolve => setTimeout(resolve, 350))
 
   it('should maintain knowledge of which clients are joined', async () => {
     expect(await listClients()).toHaveLength(1)
