@@ -3,9 +3,10 @@ import logger from './logger'
 import { act, ACTIONS, on, Action, off } from "./actions"
 import { initState } from "./state"
 
-interface Statistic {lag: number}
+interface Statistic { lag: number, dataTransferRate: number }
 const channels = new Map<ID, Set<RTCDataChannel>>()
 const stats: {[id: string]: Statistic} = {}
+const transferRates: {[key: string]: { amount: number, collectionStarted: number }} = {}
 
 export function clients() {
   return Array.from(channels.keys())
@@ -41,6 +42,7 @@ export function destroyClient(id: ID) {
   channels.get(id)?.forEach(ch => ch.close())
   channels.delete(id)
   delete stats[id]
+  delete transferRates[id]
   act(id, ACTIONS.CLOSE)
   off(id)
   updateClientStates()
@@ -49,8 +51,10 @@ export function destroyClient(id: ID) {
 export function send(id: ID, action: Action, ...attrs: any) {
   channels.get(id)?.forEach(channel => {
     if(channel.readyState === 'open') {
+      const msg = JSON.stringify({action, attrs})
+      collectTransferRate(id, msg)
       logger.debug(id, 'send', action)
-      try { channel.send(JSON.stringify({action, attrs})) }
+      try { channel.send(msg) }
       catch (err) { logger.error(id, `could not send to a '${channel.readyState}' channel`, action) }
     } else {
       logger.debug(id, `could not send to a '${channel.readyState}' channel`, action)
@@ -70,6 +74,19 @@ export function broadcastToOthers(notThisId: ID, action: Action, ...attrs: any) 
   }
 }
 
+function collectTransferRate(id: ID, msg: string) {
+  const collector = transferRates[id] = transferRates[id] || { amount: 0, collectionStarted: Date.now() }
+  collector.amount += msg.length
+  const timeCollected = Date.now() - collector.collectionStarted
+  if (timeCollected > 1000) {
+    const stat = ensureStatsExist(id)
+    stat.dataTransferRate = collector.amount / timeCollected
+    collector.amount = 0
+    collector.collectionStarted = Date.now()
+    updateClientStates()
+  }
+}
+
 function updateLag(id: ID, lag: number) {
   const stat = ensureStatsExist(id)
   stat.lag = lag
@@ -83,7 +100,7 @@ function ensureChannelSetExists(id: ID): Set<RTCDataChannel> {
 }
 
 function ensureStatsExist(id: ID): Statistic {
-  const stat = stats[id] || {lag: Infinity}
+  const stat = stats[id] || {lag: Infinity, dataTransferRate: 0}
   stats[id] = stat
   return stat
 }

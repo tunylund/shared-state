@@ -67,7 +67,7 @@ describe('clients', () => {
     })
     
     it('should provide statistics', () => {
-      expect(statistics()).toMatchObject(new Map([['a-id', { lag: Infinity }]]))
+      expect(statistics()).toMatchObject(new Map([['a-id', { lag: Infinity, dataTransferRate: 0 }]]))
     })
   })
 
@@ -102,7 +102,7 @@ describe('clients', () => {
 
     it('should broadcast client states when a new client is added', () => {
       openTestChannel('b-id', b)
-      const data = msg(ACTIONS.CLIENT_UPDATE, { clients: ['a-id', 'b-id'], statistics: { 'a-id': { lag: Infinity }, 'b-id': { lag: Infinity } } })
+      const data = msg(ACTIONS.CLIENT_UPDATE, { clients: ['a-id', 'b-id'], statistics: { 'a-id': { lag: Infinity, dataTransferRate: 0 }, 'b-id': { lag: Infinity, dataTransferRate: 0 } } })
       expect(a.send).toHaveBeenLastCalledWith(data)
       expect(b.send).toHaveBeenLastCalledWith(data)
     })
@@ -110,7 +110,7 @@ describe('clients', () => {
     it('should broadcast client states when a client is destroyed', () => {
       openTestChannel('b-id', b)
       destroyClient('a-id')
-      const data = msg(ACTIONS.CLIENT_UPDATE, { clients: ['b-id'], statistics: { 'b-id': { lag: Infinity } } })
+      const data = msg(ACTIONS.CLIENT_UPDATE, { clients: ['b-id'], statistics: { 'b-id': { lag: Infinity, dataTransferRate: 0 } } })
       expect(a.send).not.toHaveBeenCalledWith(data)
       expect(b.send).toHaveBeenCalledWith(data)
     })

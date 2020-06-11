@@ -39,8 +39,8 @@ loop((step, duration) => {
 
   if (statistics().hasOwnProperty(myId)) {
     draw(function drawHud(ctx, cw, ch) {
-      const { lag } = statistics()[myId]
-      const text = `lag: ${lag}ms   updates: ${updateFps}/s`
+      const { lag, dataTransferRate } = statistics()[myId]
+      const text = `lag: ${lag}ms   updates: ${updateFps}/s   data: ${dataTransferRate.toFixed(0)}b/s`
       ctx.font = '12px Arial'
       ctx.fillStyle = 'white'
       ctx.fillText(text, cw - 20 - ctx.measureText(text).width, -ch + 20)
