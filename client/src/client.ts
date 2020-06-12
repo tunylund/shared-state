@@ -68,6 +68,6 @@ export function clients() {
   return stats.clients
 }
 
-export function statistics() {
-  return stats.statistics
+export function statistics(id: string) {
+  return stats.statistics[id]
 }

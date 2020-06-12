@@ -88,7 +88,6 @@ describe('integration-tests', () => {
   it('should send lag statistics periodically to the connected clients', async () => {
     await waitForConsistency()
     const stats = await getLagStatistics()
-    expect(Object.values(stats)).toHaveLength(1)
-    expect(Object.values(stats)[0]).toHaveProperty('lag')
+    expect(stats).toHaveProperty('lag')
   })
 })

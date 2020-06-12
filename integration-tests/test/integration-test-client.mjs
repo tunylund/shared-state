@@ -21,7 +21,7 @@ process.on('disconnect', () => {
 process.on('message', msg => {
   log(msg)
   if(msg === 'getState') process.send(state())
-  if(msg === 'getStatistics') process.send(statistics())
+  if(msg === 'getStatistics') process.send(statistics(myId))
   if(msg === 'getId') process.send(myId)
 })
 

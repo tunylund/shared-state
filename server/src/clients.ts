@@ -3,7 +3,7 @@ import logger from './logger'
 import { act, ACTIONS, on, Action, off } from "./actions"
 import { initState } from "./state"
 
-interface Statistic { lag: number, dataTransferRate: number }
+export interface Statistic { lag: number, dataTransferRate: number }
 const channels = new Map<ID, Set<RTCDataChannel>>()
 const stats: {[id: string]: Statistic} = {}
 const transferRates: {[key: string]: { amount: number, collectionStarted: number }} = {}
@@ -12,8 +12,8 @@ export function clients() {
   return Array.from(channels.keys())
 }
 
-export function statistics() {
-  return stats
+export function statistics(id: ID) {
+  return stats[id]
 }
 
 export function createClient(id: ID, channel: RTCDataChannel) {
@@ -125,6 +125,6 @@ function removeChannel(id: ID, channel: RTCDataChannel) {
 function updateClientStates() {
   broadcast(ACTIONS.CLIENT_UPDATE, {
     clients: clients(),
-    statistics: statistics()
+    statistics: stats
   })
 }

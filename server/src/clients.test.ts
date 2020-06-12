@@ -67,7 +67,7 @@ describe('clients', () => {
     })
     
     it('should provide statistics', () => {
-      expect(statistics()).toMatchObject(new Map([['a-id', { lag: Infinity, dataTransferRate: 0 }]]))
+      expect(statistics('a-id')).toMatchObject({ lag: Infinity, dataTransferRate: 0 })
     })
   })
 
@@ -97,7 +97,7 @@ describe('clients', () => {
     it('should keep track of lag', () => {
       const data = msg(ACTIONS.PING, Date.now())
       if (a.onmessage) a.onmessage({data} as MessageEvent)
-      expect(statistics()['a-id'].lag).toBeLessThan(10)
+      expect(statistics('a-id').lag).toBeLessThan(10)
     })
 
     it('should broadcast client states when a new client is added', () => {
