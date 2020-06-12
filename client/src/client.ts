@@ -8,7 +8,7 @@ interface ClientStatistics {
   clients: ID[]
   statistics: { [id: string]: Statistic }
 }
-interface Statistic { lag: number, dataTransferRate: number }
+export interface Statistic { lag: number, dataTransferRate: number }
 let stats: ClientStatistics = {
   clients: [],
   statistics: {}
