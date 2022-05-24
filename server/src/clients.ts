@@ -4,6 +4,11 @@ import { act, ACTIONS, on, Action, off } from "./actions"
 import { initState } from "./state"
 
 export interface Statistic { lag: number, dataTransferRate: number }
+// typescript dom library is misising RTCErrorEvent definition
+interface RTCErrorEvent extends Event {
+  error?: { message: string }
+}
+
 const channels = new Map<ID, Set<RTCDataChannel>>()
 const stats: {[id: string]: Statistic} = {}
 const transferRates: {[key: string]: { amount: number, collectionStarted: number }} = {}
@@ -26,8 +31,8 @@ export function createClient(id: ID, channel: RTCDataChannel) {
     channel.onerror = channel.onmessage = null
     removeChannel(id, channel)
   }
-  channel.onerror = error => {
-    if (error.error.message === 'Transport channel closed') return
+  channel.onerror = (error: RTCErrorEvent) => {
+    if (error.error?.message === 'Transport channel closed') return
     logger.error(id, `data-channel:`, error)
     act(id, ACTIONS.ERROR, error)
   }

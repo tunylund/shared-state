@@ -1,4 +1,4 @@
-import socketIO, { Socket } from 'socket.io'
+import { Socket, Server as SocketIOServer } from 'socket.io'
 import { v4 as uuid } from 'uuid'
 import { init } from './state'
 // @ts-ignore
@@ -9,6 +9,7 @@ const { RTCPeerConnection } = wrtc
 
 export type ID = string
 
+interface RTCOAuthCredential {}
 interface RTCIceServer {
   credential?: string | RTCOAuthCredential;
   credentialType?: RTCIceCredentialType;
@@ -30,7 +31,7 @@ const defaultConfig: Config = {
   path: '/shared-state'
 }
 
-let signalingServer: socketIO.Server|null = null
+let signalingServer: SocketIOServer|null = null
 
 function validateConfiguration({iceServers}: Config) {
   for(let {urls} of (iceServers || [])) {
@@ -48,7 +49,7 @@ export function start(httpServerOrPort: any, initialState: {}, onConnect: (id: I
   if (signalingServer) close()
   init(initialState)
   setLogLevel(conf.debugLog)
-  signalingServer = socketIO(httpServerOrPort, { transports: ['websocket'], path: conf.path })
+  signalingServer = new SocketIOServer(httpServerOrPort, { transports: ['websocket'], path: conf.path })
   signalingServer.on('connection', signalingSocket => {
     signalingSocket
     const id = buildPeer(signalingSocket, conf)
