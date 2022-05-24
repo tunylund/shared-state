@@ -32,7 +32,7 @@ start(server, {cubes: []}, (id: string) => {
   on(id, 'input', (dir: XYZ) => {
     const cube = state<GameState>().cubes.find(cube => cube.id === id)
     if (cube) {
-      const speed = 80
+      const speed = 0.05
       cube.pos.vel = mul(vector(dir.radian, dir.size * speed), xyz(1, -1))
       update(state())
     }
