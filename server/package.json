@@ -1,6 +1,6 @@
 {
   "name": "shared-state-server",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "A library for synchronizing states between a server and multiple clients using WebRTC and WebSockets",
   "homepage": "https://tunylund.github.io/shared-state",
   "keywords": [
