@@ -3,6 +3,10 @@ import { on, ACTIONS, act } from './actions'
 
 const channels = new Set<RTCDataChannel>()
 
+// typescript dom library is misising RTCErrorEvent definition
+interface RTCErrorEvent extends Event {
+  error?: { message: string }
+}
 export type ID = string
 interface ClientStatistics {
   clients: ID[]
@@ -30,8 +34,8 @@ export function addChannel(channel: RTCDataChannel, lagInterval: number) {
     channels.delete(channel)
     if (channels.size === 0) stopLagPingPong()
   }
-  channel.onerror = error => {
-    if (error.error.message === 'Transport channel closed') return;
+  channel.onerror = (error: RTCErrorEvent) => {
+    if (error.error?.message === 'Transport channel closed') return;
     logger.error(`data-channel-${channel.id}:`, error)
     act(ACTIONS.ERROR, [error])
   }

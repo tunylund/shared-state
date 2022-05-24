@@ -36,9 +36,9 @@ describe('integration-tests', () => {
   function close(target: ChildProcess): Promise<any> {
     return new Promise(resolve => {
       if (target.connected) {
-        target.on('exit', () => resolve())
+        target.on('exit', () => resolve(0))
         target.disconnect()
-      } else resolve()
+      } else resolve(0)
     })
   }
 

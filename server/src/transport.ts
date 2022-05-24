@@ -1,4 +1,4 @@
-import { Socket, Server as SocketIOServer } from 'socket.io'
+import socketIO, { Socket, Server as SocketIOServer } from 'socket.io'
 import { v4 as uuid } from 'uuid'
 import { init } from './state'
 // @ts-ignore

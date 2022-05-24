@@ -15,17 +15,17 @@
   "author": "Tuomas Nylund",
   "license": "MIT",
   "devDependencies": {
-    "@types/deep-diff": "^1.0.0",
-    "@types/jest": "^25.2.1",
+    "@types/deep-diff": "^1.0.1",
+    "@types/jest": "^27.5.1",
     "@types/node": "^13.13.5",
-    "babel-jest": "^26.0.1",
+    "babel-jest": "^28.1.0",
     "deep-diff": "^1.0.2",
-    "jest": "^26.0.1",
+    "jest": "^28.1.0",
     "shared-state-client": "file:../client",
     "shared-state-server": "file:../server",
-    "socket.io-client": "^2.3.0",
-    "ts-jest": "^25.5.1",
-    "typescript": "^3.8.3",
-    "wrtc": "^0.4.4"
+    "socket.io-client": "^4.5.1",
+    "ts-jest": "^28.0.2",
+    "typescript": "^4.6.0",
+    "wrtc": "^0.4.7"
   }
 }

@@ -1,6 +1,9 @@
 import { act, ACTIONS } from './actions'
 import logger, { setLogLevel } from './logger'
 import { addChannel } from './client'
+import { Socket } from 'socket.io-client'
+
+declare var io: any;
 
 export function connect(url: string, config?: Partial<Config>): () => void {
   const conf = {...defaultConfig, ...config}
@@ -25,7 +28,7 @@ export function connect(url: string, config?: Partial<Config>): () => void {
   return disconnect.bind({}, socket)
 }
 
-function disconnect(socket: SocketIOClient.Socket) {
+function disconnect(socket: Socket) {
   socket && socket.close()
   socket.off('connect')
   socket.off('connect_error')
@@ -33,7 +36,7 @@ function disconnect(socket: SocketIOClient.Socket) {
   socket.off('disconnect')
 }
 
-function buildPeer(socket: SocketIOClient.Socket, config: Config) {
+function buildPeer(socket: Socket, config: Config) {
   const peer = new RTCPeerConnection({ iceServers: config.iceServers })
   
   peer.onicecandidate = ({candidate}) => socket.emit('signal', {candidate})
@@ -58,7 +61,7 @@ function buildPeer(socket: SocketIOClient.Socket, config: Config) {
   return peer
 }
 
-function closePeer(peer: RTCPeerConnection, socket: SocketIOClient.Socket) {
+function closePeer(peer: RTCPeerConnection, socket: Socket) {
   peer.onicecandidate = null
   peer.oniceconnectionstatechange = null
   peer.onconnectionstatechange = null
@@ -75,7 +78,7 @@ interface Signal {
   candidate?: RTCIceCandidate
 }
 
-async function handleSignal({ id, description, candidate }: Signal, peer: RTCPeerConnection, socket: SocketIOClient.Socket) {
+async function handleSignal({ id, description, candidate }: Signal, peer: RTCPeerConnection, socket: Socket) {
   if (id) {
     act(ACTIONS.INIT, [id])
   } else if (description && description.type === 'offer') {
