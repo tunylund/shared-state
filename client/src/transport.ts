@@ -1,9 +1,9 @@
 import { act, ACTIONS } from './actions'
 import logger, { setLogLevel } from './logger'
 import { addChannel } from './client'
-import { Socket } from 'socket.io-client'
 
 declare var io: any;
+declare type Socket = any;
 
 export function connect(url: string, config?: Partial<Config>): () => void {
   const conf = {...defaultConfig, ...config}
