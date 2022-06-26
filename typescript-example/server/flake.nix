@@ -12,6 +12,8 @@
       devShell.x86_64-linux =
         pkgs.mkShell {
           buildInputs = [
+            pkgs.python3
+            pkgs.pkg-config
 
             pkgs.nodejs
             pkgs.libjpeg
