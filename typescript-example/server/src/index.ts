@@ -1,13 +1,19 @@
 import { createServer } from 'http'
 import { start, state, update, on, ACTIONS } from 'shared-state-server'
-import {
-  loop, Entity, vector, XYZ,
-  move, position, cube, xyz, mul
-} from 'tiny-game-engine'
 
-interface Cube extends Entity {
+interface Cube {
   id: string
   hue: number
+  velx: number
+  vely: number
+  x: number
+  y: number
+  w: number
+  h: number
+}
+interface Dir {
+  x: number
+  y: number
 }
 interface GameState {
   cubes: Cube[]
@@ -17,7 +23,7 @@ function addCube(id: string) {
   const current = state<GameState>()
   const hue = Math.floor(Math.random() * 360)
   current.cubes.push({
-    id, pos: position(), dim: cube(20), hue, dir: xyz()
+    id, x: 0, y: 0, w: 20, h: 20, hue, velx: 0, vely: 0
   })
 }
 
@@ -29,11 +35,12 @@ function removeCube(id: string) {
 const server = createServer((req, res) => {})
 start(server, {cubes: []}, (id: string) => {
   addCube(id)
-  on(id, 'input', (dir: XYZ) => {
+  on(id, 'input', (dir: Dir) => {
     const cube = state<GameState>().cubes.find(cube => cube.id === id)
     if (cube) {
       const speed = 0.05
-      cube.pos.vel = mul(vector(dir.radian, dir.size * speed), xyz(1, -1))
+      cube.velx = dir.x * speed
+      cube.vely = dir.y * speed
       update(state())
     }
   })
@@ -42,17 +49,17 @@ start(server, {cubes: []}, (id: string) => {
   })
 })
 
-let steps = []
-loop((step, gameDuration) => {
-  const current = state<GameState>()
-  steps.push(step)
-  current.cubes.map(cube => cube.pos = move(cube.pos, step))
-}, {
-  requestAnimationFrame: setImmediate,
-  cancelAnimationFrame: clearImmediate
-})
+let lastStep = Date.now()
+setInterval(() => {
+  const step = Date.now() - lastStep
+  lastStep = Date.now()
 
-setInterval(()=> {
+  const current = state<GameState>()
+  current.cubes.map(cube => {
+    cube.x = cube.x + cube.velx * step
+    cube.y = cube.y + cube.vely * step
+  })
+
   try {
     update(state())
   } catch (e) {

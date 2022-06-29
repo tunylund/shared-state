@@ -21,7 +21,6 @@
     "typescript": "^4.6.0"
   },
   "dependencies": {
-    "tiny-game-engine": "tunylund/tiny-game-engine",
     "shared-state-server": "../../server"
   }
 }

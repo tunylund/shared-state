@@ -14,8 +14,7 @@
   },
   "dependencies": {
     "shared-state-client": "file:../../client",
-    "socket.io-client": "^4.5.1",
-    "tiny-game-engine": "tunylund/tiny-game-engine"
+    "socket.io-client": "^4.5.1"
   },
   "author": "Tuomas Nylund",
   "license": "MIT",
