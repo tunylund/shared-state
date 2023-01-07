@@ -1,6 +1,5 @@
 //@ts-ignore
 import wrtc from 'wrtc'
-import io from 'socket.io-client'
 import { connect, on, ACTIONS, state, statistics } from 'shared-state-client'
 
 global.RTCPeerConnection = wrtc.RTCPeerConnection

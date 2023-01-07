@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+service SharedStateService {
+  rpc ping(PingRequest) returns(Void) {};
+  rpc connect(Void) returns(ConnectResponse) {}
+  rpc send(MessageRequest) returns(Void) {}
+  rpc listen(Void) returns(stream Update) {}
+}
+
+message PingRequest {
+  int32 clientTime = 1;
+}
+message Void {}
+message ConnectResponse {
+  string id = 1;
+}
+message MessageRequest {
+  string action = 1;
+  string attrs = 2;
+}
+message Update {
+  string action = 1;
+  string attrs = 2;
+}
