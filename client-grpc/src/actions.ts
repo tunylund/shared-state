@@ -1,3 +1,4 @@
+import logger from "./logger"
 
 const actions = new Map<Action, Set<Function>>()
 
@@ -5,7 +6,6 @@ export type Action = string
 
 export enum ACTIONS {
   INIT = 'init',
-  OPEN = 'open',
   CLOSE = 'close',
   ERROR = 'error',
   PING = 'ping',
@@ -18,7 +18,7 @@ export function act(action: Action, attrs: any[] = []) {
   try {
     actions.get(action)?.forEach(fn => fn(...attrs))
   } catch (err) {
-    console.error(err)
+    logger.error(err)
   }
 }
 

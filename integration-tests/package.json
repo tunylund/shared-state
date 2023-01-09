@@ -21,11 +21,9 @@
     "babel-jest": "^28.1.0",
     "deep-diff": "^1.0.2",
     "jest": "^28.1.0",
-    "shared-state-client": "file:../client",
-    "shared-state-server": "file:../server",
-    "socket.io-client": "^4.5.1",
+    "shared-state-client": "file:../client-grpc",
+    "shared-state-server": "file:../server-grpc",
     "ts-jest": "^28.0.2",
-    "typescript": "^4.6.0",
-    "wrtc": "^0.4.7"
+    "typescript": "^4.6.0"
   }
 }

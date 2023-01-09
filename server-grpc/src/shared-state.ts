@@ -1,6 +1,6 @@
 /* eslint-disable */
 import type { CallContext, CallOptions } from "nice-grpc-common";
-import * as _m0 from "protobufjs/minimal";
+import _m0 from "protobufjs/minimal";
 
 export const protobufPackage = "";
 
@@ -295,6 +295,14 @@ export const SharedStateServiceDefinition = {
       responseStream: false,
       options: {},
     },
+    disconnect: {
+      name: "disconnect",
+      requestType: Void,
+      requestStream: false,
+      responseType: Void,
+      responseStream: false,
+      options: {},
+    },
     send: {
       name: "send",
       requestType: MessageRequest,
@@ -317,6 +325,7 @@ export const SharedStateServiceDefinition = {
 export interface SharedStateServiceImplementation<CallContextExt = {}> {
   ping(request: PingRequest, context: CallContext & CallContextExt): Promise<DeepPartial<Void>>;
   connect(request: Void, context: CallContext & CallContextExt): Promise<DeepPartial<ConnectResponse>>;
+  disconnect(request: Void, context: CallContext & CallContextExt): Promise<DeepPartial<Void>>;
   send(request: MessageRequest, context: CallContext & CallContextExt): Promise<DeepPartial<Void>>;
   listen(request: Void, context: CallContext & CallContextExt): ServerStreamingMethodResult<DeepPartial<Update>>;
 }
@@ -324,6 +333,7 @@ export interface SharedStateServiceImplementation<CallContextExt = {}> {
 export interface SharedStateServiceClient<CallOptionsExt = {}> {
   ping(request: DeepPartial<PingRequest>, options?: CallOptions & CallOptionsExt): Promise<Void>;
   connect(request: DeepPartial<Void>, options?: CallOptions & CallOptionsExt): Promise<ConnectResponse>;
+  disconnect(request: DeepPartial<Void>, options?: CallOptions & CallOptionsExt): Promise<Void>;
   send(request: DeepPartial<MessageRequest>, options?: CallOptions & CallOptionsExt): Promise<Void>;
   listen(request: DeepPartial<Void>, options?: CallOptions & CallOptionsExt): AsyncIterable<Update>;
 }

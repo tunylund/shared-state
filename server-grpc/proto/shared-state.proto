@@ -3,6 +3,7 @@ syntax = "proto3";
 service SharedStateService {
   rpc ping(PingRequest) returns(Void) {};
   rpc connect(Void) returns(ConnectResponse) {}
+  rpc disconnect(Void) returns(Void) {}
   rpc send(MessageRequest) returns(Void) {}
   rpc listen(Void) returns(stream Update) {}
 }

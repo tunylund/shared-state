@@ -1,7 +1,7 @@
 import { init, update, state, initState } from './state'
 import { ACTIONS } from "./actions"
 import { broadcast, send } from './peers'
-jest.mock('./api')
+jest.mock('./peers')
 
 interface SomeState {
   some: string

@@ -1,7 +1,8 @@
 import { act, ACTIONS, on } from './actions'
 import logger, { setLogLevel } from './logger'
-import grpc from 'nice-grpc-web'
+import grpc, { waitForChannelReady } from 'nice-grpc'
 import { SharedStateServiceClient, SharedStateServiceDefinition } from './shared-state'
+import ggrpc from '@grpc/grpc-js'
 
 interface Config {
   lagInterval: number
@@ -26,46 +27,57 @@ let stats: ClientStatistics = {
 }
 
 let client: SharedStateServiceClient
-export async function connect(url: string, config?: Partial<Config>) {
+export async function connect(url: string, config?: Partial<Config>): Promise<() => void> {
   const conf = { ...defaultConfig, ...config }
   setLogLevel(conf.debugLog)
 
   const channel = grpc.createChannel(url);
+  await waitForChannelReady(channel, new Date(Date.now() + 1000))
   
   client = grpc.createClient(
     SharedStateServiceDefinition,
     channel,
   )
 
-  logger.debug('connecting')
-
-  const id = await client.connect({})
-  act(ACTIONS.OPEN)
+  const { id } = await client.connect({})
   on(ACTIONS.CLIENT_UPDATE, (newStats: ClientStatistics) => stats = newStats)
   on(ACTIONS.CLOSE, stopLagPingPong)
-
-  startLagPingPong(conf.lagInterval)
-  startListeningForUpdates()
-
+  await startLagPingPong(conf.lagInterval)
+  const abortController = new AbortController();
+  startListeningForUpdates(abortController.signal)
   act(ACTIONS.INIT, [id])
+
+  return async () => {
+    abortController.abort()
+    stopLagPingPong()
+    if (channel.getConnectivityState(false) == ggrpc.connectivityState.READY) {
+      await client.disconnect({})
+      channel.close()
+    }
+  }
 }
 
 let lagPingTimeout: any
-function startLagPingPong(lagInterval: number) {
-  function ping() {
-    client.ping({ clientTime: Date.now() })
+async function startLagPingPong(lagInterval: number) {
+  async function ping() {
+    await client.ping({ clientTime: Date.now() })
     lagPingTimeout = setTimeout(ping, lagInterval)
   }
-  ping()
+  await ping()
 }
 function stopLagPingPong() {
   clearTimeout(lagPingTimeout)
   lagPingTimeout = null
 }
 
-async function startListeningForUpdates() {
-  for await (const {action, attrs} of client.listen({})) {
-    act(action, JSON.parse(attrs))
+async function startListeningForUpdates(signal: AbortSignal) {
+  try {
+    for await (const response of client.listen({}, { signal })) {
+      act(response.action, JSON.parse(response.attrs))
+    }
+  } catch (error) {
+    if ((error as Error).name === 'AbortError') logger.log('aborted')
+    else logger.error(error)
   }
 }
 

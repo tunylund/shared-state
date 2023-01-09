@@ -1,6 +1,6 @@
 /* eslint-disable */
 import type { CallContext, CallOptions } from "nice-grpc-common";
-import _m0 from "protobufjs/minimal";
+import * as _m0 from "protobufjs/minimal";
 
 export const protobufPackage = "";
 
@@ -55,16 +55,6 @@ export const PingRequest = {
     return message;
   },
 
-  fromJSON(object: any): PingRequest {
-    return { clientTime: isSet(object.clientTime) ? Number(object.clientTime) : 0 };
-  },
-
-  toJSON(message: PingRequest): unknown {
-    const obj: any = {};
-    message.clientTime !== undefined && (obj.clientTime = Math.round(message.clientTime));
-    return obj;
-  },
-
   fromPartial(object: DeepPartial<PingRequest>): PingRequest {
     const message = createBasePingRequest();
     message.clientTime = object.clientTime ?? 0;
@@ -94,15 +84,6 @@ export const Void = {
       }
     }
     return message;
-  },
-
-  fromJSON(_: any): Void {
-    return {};
-  },
-
-  toJSON(_: Void): unknown {
-    const obj: any = {};
-    return obj;
   },
 
   fromPartial(_: DeepPartial<Void>): Void {
@@ -139,16 +120,6 @@ export const ConnectResponse = {
       }
     }
     return message;
-  },
-
-  fromJSON(object: any): ConnectResponse {
-    return { id: isSet(object.id) ? String(object.id) : "" };
-  },
-
-  toJSON(message: ConnectResponse): unknown {
-    const obj: any = {};
-    message.id !== undefined && (obj.id = message.id);
-    return obj;
   },
 
   fromPartial(object: DeepPartial<ConnectResponse>): ConnectResponse {
@@ -192,20 +163,6 @@ export const MessageRequest = {
       }
     }
     return message;
-  },
-
-  fromJSON(object: any): MessageRequest {
-    return {
-      action: isSet(object.action) ? String(object.action) : "",
-      attrs: isSet(object.attrs) ? String(object.attrs) : "",
-    };
-  },
-
-  toJSON(message: MessageRequest): unknown {
-    const obj: any = {};
-    message.action !== undefined && (obj.action = message.action);
-    message.attrs !== undefined && (obj.attrs = message.attrs);
-    return obj;
   },
 
   fromPartial(object: DeepPartial<MessageRequest>): MessageRequest {
@@ -252,20 +209,6 @@ export const Update = {
     return message;
   },
 
-  fromJSON(object: any): Update {
-    return {
-      action: isSet(object.action) ? String(object.action) : "",
-      attrs: isSet(object.attrs) ? String(object.attrs) : "",
-    };
-  },
-
-  toJSON(message: Update): unknown {
-    const obj: any = {};
-    message.action !== undefined && (obj.action = message.action);
-    message.attrs !== undefined && (obj.attrs = message.attrs);
-    return obj;
-  },
-
   fromPartial(object: DeepPartial<Update>): Update {
     const message = createBaseUpdate();
     message.action = object.action ?? "";
@@ -295,14 +238,6 @@ export const SharedStateServiceDefinition = {
       responseStream: false,
       options: {},
     },
-    disconnect: {
-      name: "disconnect",
-      requestType: Void,
-      requestStream: false,
-      responseType: Void,
-      responseStream: false,
-      options: {},
-    },
     send: {
       name: "send",
       requestType: MessageRequest,
@@ -325,7 +260,6 @@ export const SharedStateServiceDefinition = {
 export interface SharedStateServiceImplementation<CallContextExt = {}> {
   ping(request: PingRequest, context: CallContext & CallContextExt): Promise<DeepPartial<Void>>;
   connect(request: Void, context: CallContext & CallContextExt): Promise<DeepPartial<ConnectResponse>>;
-  disconnect(request: Void, context: CallContext & CallContextExt): Promise<DeepPartial<Void>>;
   send(request: MessageRequest, context: CallContext & CallContextExt): Promise<DeepPartial<Void>>;
   listen(request: Void, context: CallContext & CallContextExt): ServerStreamingMethodResult<DeepPartial<Update>>;
 }
@@ -333,7 +267,6 @@ export interface SharedStateServiceImplementation<CallContextExt = {}> {
 export interface SharedStateServiceClient<CallOptionsExt = {}> {
   ping(request: DeepPartial<PingRequest>, options?: CallOptions & CallOptionsExt): Promise<Void>;
   connect(request: DeepPartial<Void>, options?: CallOptions & CallOptionsExt): Promise<ConnectResponse>;
-  disconnect(request: DeepPartial<Void>, options?: CallOptions & CallOptionsExt): Promise<Void>;
   send(request: DeepPartial<MessageRequest>, options?: CallOptions & CallOptionsExt): Promise<Void>;
   listen(request: DeepPartial<Void>, options?: CallOptions & CallOptionsExt): AsyncIterable<Update>;
 }
@@ -344,9 +277,5 @@ export type DeepPartial<T> = T extends Builtin ? T
   : T extends Array<infer U> ? Array<DeepPartial<U>> : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
   : Partial<T>;
-
-function isSet(value: any): boolean {
-  return value !== null && value !== undefined;
-}
 
 export type ServerStreamingMethodResult<Response> = { [Symbol.asyncIterator](): AsyncIterator<Response, void> };

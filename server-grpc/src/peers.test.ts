@@ -1,12 +1,13 @@
 import { act, ACTIONS, off, on } from './actions'
-import { addPeer, peerIds, destroyPeer, send, broadcast, broadcastToOthers, statistics } from './peers'
+import { addPeer, peerIds, destroyPeer, send, broadcast, broadcastToOthers, statistics, updateLag } from './peers'
 import { state } from './state'
 
 function msg(action: string, attr: any) {
-  return JSON.stringify({action, attrs: [attr]})
+  return {action, attrs: JSON.stringify([attr])}
 }
 
-describe('api', () => {
+jest.useFakeTimers();
+describe('peers', () => {
 
   const a = {
     close: jest.fn(),
@@ -71,6 +72,21 @@ describe('api', () => {
     })
   })
 
+  describe('updateLag', () => {
+    it('should keep track of lag with a PING action', () => {
+      const clientTime = Date.now()
+      jest.advanceTimersByTime(100)
+      updateLag('a-id', clientTime)
+      expect(statistics('a-id')?.lag).toBe(100)
+    })
+
+    it('should broadcast client states when lag is updated', () => {
+      expect(a.send).toHaveBeenCalledTimes(2)
+      updateLag('a-id', Date.now())
+      expect(a.send).toHaveBeenCalledTimes(3)
+    })
+  })
+
   describe('channel behaviour', () => {
     it('should initialize state when channel is open', () => {
       expect(a.send).toHaveBeenCalledWith(msg(ACTIONS.STATE_INIT, state()))
@@ -88,11 +104,6 @@ describe('api', () => {
       on('a-id', ACTIONS.CLOSE, closed)
       destroyPeer('a-id')
       expect(closed).toHaveBeenCalled()
-    })
-
-    it('should keep track of lag with a PING action', () => {
-      act('a-id', ACTIONS.PING, Date.now())
-      expect(statistics('a-id')?.lag).toBeLessThan(10)
     })
 
     it('should broadcast peer states when a new peer is added', () => {
@@ -116,12 +127,5 @@ describe('api', () => {
       expect(a.send).not.toHaveBeenCalledWith(data)
       expect(b.send).toHaveBeenLastCalledWith(data)
     })
-
-    // it('should broadcast client states when lag is updated', () => {
-    //   expect(a.send).toHaveBeenCalledTimes(2)
-    //   act('a-id', ACTIONS.PING, Date.now())
-    //   expect(statistics('a-id')?.lag).toBeLessThan(10)
-    //   expect(a.send).toHaveBeenCalledTimes(3)
-    // })
   })
 })

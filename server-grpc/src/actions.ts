@@ -1,3 +1,5 @@
+import logger from "./logger"
+
 const actions = new Map<string, Map<Action, Set<Function>>>()
 const emptySet = new Set<any>()
 
@@ -17,7 +19,7 @@ export function act(id: string, action: Action, ...attrs: any[]) {
     try {
       fn(...attrs)
     } catch (err) {
-      console.error(id, err)
+      logger.error(id, err)
     }
   }
 }

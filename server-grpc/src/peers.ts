@@ -8,7 +8,7 @@ const rates = new Map<string, TransferRate>()
 
 
 export interface Peer {
-  send: (msg: any) => unknown
+  send: (msg: { action: string, attrs: string }) => unknown
 }
 
 interface Statistic {
@@ -39,18 +39,25 @@ export function destroyPeer(id: string) {
   updateClientStates()
 }
 
+export function peer(id: string): Peer|undefined {
+  return peers.get(id)
+}
+
 export function peerIds() {
   return Array.from(peers.keys())
 }
 
-export function send(id: string, action: Action, ...attrs: any) {
+export function send(id: string, action: Action, ...attrs: any[]) {
   const peer = peers.get(id)
-  const msg = JSON.stringify({action, attrs})
+  const msg = { action, attrs: JSON.stringify(attrs) }
   if (peer) {
-    collectTransferRate(id, msg)
+    collectTransferRate(id, JSON.stringify(msg))
     logger.debug(id, 'send', action)
     try { peer.send(msg) }
-    catch (err) { logger.error(id, `could not send to a peer`, action) }
+    catch (err) {
+      logger.error(id, `could not send to a peer`, action)
+      logger.error(err)
+    }
   }
 }
 
@@ -85,7 +92,6 @@ function collectTransferRate(id: string, msg: string) {
 
 function ensureStatsExist(id: string): Statistic {
   const stat = stats.get(id) || {lag: Infinity, dataTransferRate: 0}
-  console.log(stat)
   stats.set(id, stat)
   return stat
 }

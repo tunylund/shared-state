@@ -1,4 +1,3 @@
-import { createServer } from 'http'
 import { start, stop, state, update, clients } from 'shared-state-server'
 
 function send(message) {
@@ -7,17 +6,15 @@ function send(message) {
 }
 
 function log(message) {
-  console.log('integration-test-server:', message)
+  console.log(process.pid, 'integration-test-server:', message)
 }
 
 const initialState = JSON.parse(process.argv.find(arg => arg.startsWith('state=')).split('=')[1])
-const server = createServer((req, res) => {})
-start(server, initialState, id => {})
+await start(8081, initialState, id => {})
 
 process.on('disconnect', () => {
   log('closing server')
   stop()
-  server.close(() => process.exit(0))
 })
 
 process.on('message', msg => {
@@ -29,6 +26,4 @@ process.on('message', msg => {
   }
 })
 
-server.listen(0, () => {
-  send(server.address().port)
-})
+send(8081)

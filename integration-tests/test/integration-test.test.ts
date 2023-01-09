@@ -10,7 +10,7 @@ describe('integration-tests', () => {
 
   function buildClient(): Promise<ChildProcess> {
     return new Promise((resolve, reject) => {
-      const client = spawn('node', ['--experimental-modules', './test/integration-test-client.mjs', `port=${port}`], { stdio: ['ipc'] })
+      const client = spawn('node', ['./test/integration-test-client.mjs', `port=${port}`], { stdio: ['ipc'] })
       client.stdout?.pipe(process.stdout)
       client.stderr?.pipe(process.stderr)
       client.on('message', () => resolve(client))
@@ -22,8 +22,7 @@ describe('integration-tests', () => {
   function buildServer(): Promise<[ChildProcess, number]> {
     const initialState: State = {state: 'initial'}
     return new Promise((resolve, reject) => {
-      const server = spawn('node', ['--experimental-modules', './test/integration-test-server.js', `state=${JSON.stringify(initialState)}`], { stdio: ['ipc'] })
-      // const server = fork('./test/integration-test-server.js', [`state=${JSON.stringify(initialState)}`], {silent: true})
+      const server = spawn('node', ['./test/integration-test-server.js', `state=${JSON.stringify(initialState)}`], { stdio: ['ipc'] })
       server.stdout?.pipe(process.stdout)
       server.stderr?.pipe(process.stderr)
       server.on('close', () => console.log('server closed'))
@@ -48,8 +47,8 @@ describe('integration-tests', () => {
   })
 
   afterEach(async () => {
-    await close(server)
     await close(client)
+    await close(server)
   })
 
   function send<T>(target: ChildProcess, message: Serializable): Promise<T> {
@@ -88,10 +87,10 @@ describe('integration-tests', () => {
   const getClientState = () => send<State>(client, 'getState')
   const getLagStatistics = () => send<Serializable>(client, 'getStatistics')
   const waitForConsistency = () => new Promise(resolve => setTimeout(resolve, 300))
-  
+ 
   it('should maintain knowledge of which clients are joined', async () => {
     expect(await listClients()).toHaveLength(1)
-    client.disconnect()
+    await close(client)
     await waitForConsistency()
     expect(await listClients()).toHaveLength(0)
   })

@@ -3,7 +3,7 @@ let debugLog = true
 const logger = {
   log: console.log,
   error: console.error,
-  debug: (...args: any[]) => debugLog ? console.debug(...args) : ''
+  debug: (...args: any[]) => debugLog ? console.debug(process.pid, ...args) : ''
 }
 
 export function setLogLevel(logDebugMessages: boolean) {
