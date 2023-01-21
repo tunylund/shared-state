@@ -6,11 +6,11 @@ rm -rf dist
 ./../node_modules/.bin/grpc_tools_node_protoc \
   --plugin=protoc-gen-ts_proto=./../node_modules/.bin/protoc-gen-ts_proto \
   --ts_proto_out=./src \
-  --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,useExactTypes=false,esModuleInterop=true \
+  --ts_proto_opt=env=browser,outputServices=nice-grpc,outputServices=generic-definitions,outputJsonMethods=false,useExactTypes=false,esModuleInterop=true \
   --proto_path=./proto \
   ./proto/*.proto
-
-./../node_modules/.bin/tsc  
+  
+../node_modules/.bin/tsc
 
 for f in `find dist -name '*.js'`; do
   target=`echo $f | sed "s/.js/.mjs/"`

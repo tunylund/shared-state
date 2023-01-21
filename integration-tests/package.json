@@ -15,15 +15,7 @@
   "author": "Tuomas Nylund",
   "license": "MIT",
   "devDependencies": {
-    "@types/deep-diff": "^1.0.1",
-    "@types/jest": "^27.5.1",
-    "@types/node": "^13.13.5",
     "babel-jest": "^28.1.0",
-    "deep-diff": "^1.0.2",
-    "jest": "^28.1.0",
-    "shared-state-client": "file:../client-grpc",
-    "shared-state-server": "file:../server-grpc",
-    "ts-jest": "^28.0.2",
-    "typescript": "^4.6.0"
+    "deep-diff": "^1.0.2"
   }
 }

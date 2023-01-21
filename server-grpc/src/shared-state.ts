@@ -65,6 +65,10 @@ export const PingRequest = {
     return obj;
   },
 
+  create(base?: DeepPartial<PingRequest>): PingRequest {
+    return PingRequest.fromPartial(base ?? {});
+  },
+
   fromPartial(object: DeepPartial<PingRequest>): PingRequest {
     const message = createBasePingRequest();
     message.clientTime = object.clientTime ?? 0;
@@ -103,6 +107,10 @@ export const Void = {
   toJSON(_: Void): unknown {
     const obj: any = {};
     return obj;
+  },
+
+  create(base?: DeepPartial<Void>): Void {
+    return Void.fromPartial(base ?? {});
   },
 
   fromPartial(_: DeepPartial<Void>): Void {
@@ -149,6 +157,10 @@ export const ConnectResponse = {
     const obj: any = {};
     message.id !== undefined && (obj.id = message.id);
     return obj;
+  },
+
+  create(base?: DeepPartial<ConnectResponse>): ConnectResponse {
+    return ConnectResponse.fromPartial(base ?? {});
   },
 
   fromPartial(object: DeepPartial<ConnectResponse>): ConnectResponse {
@@ -208,6 +220,10 @@ export const MessageRequest = {
     return obj;
   },
 
+  create(base?: DeepPartial<MessageRequest>): MessageRequest {
+    return MessageRequest.fromPartial(base ?? {});
+  },
+
   fromPartial(object: DeepPartial<MessageRequest>): MessageRequest {
     const message = createBaseMessageRequest();
     message.action = object.action ?? "";
@@ -264,6 +280,10 @@ export const Update = {
     message.action !== undefined && (obj.action = message.action);
     message.attrs !== undefined && (obj.attrs = message.attrs);
     return obj;
+  },
+
+  create(base?: DeepPartial<Update>): Update {
+    return Update.fromPartial(base ?? {});
   },
 
   fromPartial(object: DeepPartial<Update>): Update {
