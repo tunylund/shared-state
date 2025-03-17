@@ -3,10 +3,6 @@ import { on, ACTIONS, act } from './actions'
 
 const channels = new Set<RTCDataChannel>()
 
-// typescript dom library is misising RTCErrorEvent definition
-interface RTCErrorEvent extends Event {
-  error?: { message: string }
-}
 export type ID = string
 interface ClientStatistics {
   clients: ID[]
