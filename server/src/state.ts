@@ -6,7 +6,7 @@ import { broadcast, send } from "./clients"
 
 const deepClone = rfdc()
 
-let current = {}
+let current: unknown = {}
 let clone = deepClone(current)
 
 export function state<T>(): T {
