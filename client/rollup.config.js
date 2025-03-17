@@ -1,6 +1,5 @@
-import resolve from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
-import {terser} from 'rollup-plugin-terser'
+import terser from '@rollup/plugin-terser'
 
 export default {
   input: 'dist/index.mjs',
@@ -10,5 +9,5 @@ export default {
       { file: 'dist/bundle.umd.js', format: 'umd', name: 'SharedState' },
       { file: 'dist/bundle.umd.min.js', format: 'umd', name: 'SharedState', plugins: [terser()], sourcemap: true }
   ],
-  plugins: [ commonjs(), resolve() ]
+  plugins: [ commonjs() ]
 };
