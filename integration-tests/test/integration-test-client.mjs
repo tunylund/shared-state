@@ -1,9 +1,8 @@
-//@ts-ignore
-import wrtc from 'wrtc'
 import io from 'socket.io-client'
 import { connect, on, ACTIONS, state, statistics } from 'shared-state-client'
+import { RTCPeerConnection } from 'node-datachannel/polyfill'
 
-global.RTCPeerConnection = wrtc.RTCPeerConnection
+global.RTCPeerConnection = RTCPeerConnection
 global.io = io
 
 function log(message) {
@@ -15,7 +14,7 @@ log(`connecting to 'http://localhost:${port}'`)
 const disconnect = connect(`http://localhost:${port}`)
 
 process.on('disconnect', () => {
-  log('closing client')
+  log('Received disconnect event from the main process, closing client')
   disconnect()
 })
 process.on('message', msg => {

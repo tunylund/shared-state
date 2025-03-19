@@ -23,7 +23,6 @@ describe('integration-tests', () => {
     const initialState: State = {state: 'initial'}
     return new Promise((resolve, reject) => {
       const server = spawn('node', ['--experimental-modules', './test/integration-test-server.js', `state=${JSON.stringify(initialState)}`], { stdio: ['ipc'] })
-      // const server = fork('./test/integration-test-server.js', [`state=${JSON.stringify(initialState)}`], {silent: true})
       server.stdout?.pipe(process.stdout)
       server.stderr?.pipe(process.stderr)
       server.on('close', () => console.log('server closed'))
@@ -35,7 +34,7 @@ describe('integration-tests', () => {
 
   function close(target: ChildProcess): Promise<any> {
     return new Promise(resolve => {
-      if (target.connected) {
+      if (target && target.connected) {
         target.on('exit', () => resolve(0))
         target.disconnect()
       } else resolve(0)
@@ -48,8 +47,8 @@ describe('integration-tests', () => {
   })
 
   afterEach(async () => {
-    await close(server)
     await close(client)
+    await close(server)
   })
 
   function send<T>(target: ChildProcess, message: Serializable): Promise<T> {
@@ -91,12 +90,11 @@ describe('integration-tests', () => {
   
   it('should maintain knowledge of which clients are joined', async () => {
     expect(await listClients()).toHaveLength(1)
-    client.disconnect()
-    await waitForConsistency()
+    await close(client)
     expect(await listClients()).toHaveLength(0)
   })
 
-  it('should send id newly connected clients', async () => {
+  it('should send id to newly connected clients', async () => {
     expect(await getClientId()).not.toBeNull()
   })
 
