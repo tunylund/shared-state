@@ -9,7 +9,7 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "./build.sh",
-    "start": "http-server ."
+    "start": "http-server . -c-1"
   },
   "dependencies": {
     "shared-state-client": "file:../../client",
@@ -19,6 +19,6 @@
   "license": "MIT",
   "devDependencies": {
     "http-server": "^14.1.0",
-    "typescript": "^4.6.0"
+    "typescript": "^5.8.2"
   }
 }

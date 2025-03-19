@@ -1,23 +1,15 @@
-import socketIO, { Socket, Server as SocketIOServer } from 'socket.io'
+import { Socket, Server as SocketIOServer } from 'socket.io'
 import { v4 as uuid } from 'uuid'
 import { init } from './state'
-// @ts-ignore
-import wrtc from 'wrtc'
 import logger, { setLogLevel } from './logger'
 import { destroyClient, createClient } from './clients'
-const { RTCPeerConnection } = wrtc
+import { IceServer, PeerConnection } from 'node-datachannel';
+import { RemoteRTCPeerConnection } from './RemoteRTCPeerConnection'
 
 export type ID = string
 
-interface RTCOAuthCredential {}
-interface RTCIceServer {
-  credential?: string | RTCOAuthCredential;
-  credentialType?: RTCIceCredentialType;
-  urls: string | string[];
-  username?: string;
-}
 export interface Config {
-  iceServers?: RTCIceServer[]
+  iceServers: (string|IceServer)[]
   peerTimeout: number
   debugLog: boolean
   fastButUnreliable: boolean
@@ -34,11 +26,10 @@ const defaultConfig: Config = {
 let signalingServer: SocketIOServer|null = null
 
 function validateConfiguration({iceServers}: Config) {
-  for(let {urls} of (iceServers || [])) {
-    const urlarr = Array.isArray(urls) ? urls : [urls]
-    for (let url of urlarr) {
-      if (url.includes('stun:') || url.includes('turn:')) continue
-      else throw new Error(`Ice Server urls must have 'stun:' or 'turn:' protocol defined: '${url}' seems to not have it.`)
+  for(let iceServer of (iceServers || [])) {
+    if (typeof iceServer === 'string') {
+      if (iceServer.includes('stun:') || iceServer.includes('turn:')) continue
+      else throw new Error(`Ice Server urls must have 'stun:' or 'turn:' protocol defined: '${iceServer}' seems to not have it.`)
     }
   }
 }
@@ -51,8 +42,7 @@ export function start(httpServerOrPort: any, initialState: {}, onConnect: (id: I
   setLogLevel(conf.debugLog)
   signalingServer = new SocketIOServer(httpServerOrPort, { transports: ['websocket'], path: conf.path })
   signalingServer.on('connection', signalingSocket => {
-    signalingSocket
-    const id = buildPeer(signalingSocket, conf)
+    const id = createRTCConnection(signalingSocket, conf)
     onConnect(id)
   })
 }
@@ -64,89 +54,87 @@ export function stop() {
   }
 }
 
-function buildPeer(signalingSocket: Socket, config: Config): ID {
+function createRTCConnection(signalingSocket: Socket, config: Config): ID {
   const id = uuid()
-  const peer: RTCPeerConnection = new RTCPeerConnection({ iceServers: config.iceServers })
-  logger.debug(id, 'build a peer')
-  
-  peer.onnegotiationneeded = async () => {
-    try {
-      const offer = await peer.createOffer()
-      peer.setLocalDescription(offer)
-      signalingSocket.emit('signal', { description: offer })
-      logger.debug(id, 'signal:', 'provided an offer')
-    } catch (err) {
-      logger.error(id, 'signal', err)
-    }
-  }
+  logger.debug(id, 'connection requested, building a peer')
+
+  const peer = new PeerConnection(`peer-${id}`, { iceServers: config.iceServers })
+  const remotePeer = new RemoteRTCPeerConnection(id, signalingSocket, peer)
 
   function destroy(reason: string) {
-    peer.onnegotiationneeded = null
-    peer.onicecandidate = null
-    peer.onconnectionstatechange = null
-    peer.oniceconnectionstatechange = null
-    peer.onsignalingstatechange = null
-    peer.ondatachannel = null
-    signalingSocket.off('signal', onSignal)
-    signalingSocket.off('disconnect', onDisconnect)
-    signalingSocket.disconnect(true)
     destroyClient(id)
+    remotePeer.destroy()
     peer.close()
     logger.debug(id, `closed the peer: ${reason}`)
   }
   
-  peer.onicecandidate = ({candidate}: any) => signalingSocket.emit('signal', { candidate })
-  peer.onicecandidateerror = (ev) => logger.debug('ice candidate error', ev)
-  peer.oniceconnectionstatechange = () => {
-    if (peer.iceConnectionState === 'disconnected') destroy('iceConnectionState is disconnected')
-    if (peer.iceConnectionState === 'closed') destroy('iceConnectionState is closed')
-    // @ts-ignore
-    if (peer.iceConnectionState === 'failed') peer.restartIce()
-  }
-  peer.onconnectionstatechange = () => { if (peer.connectionState === 'closed') destroy('connectionState is closed') }
-  peer.onsignalingstatechange = () => { if (peer.signalingState === 'closed') destroy('signalingState is closed') }
+  peer.onLocalDescription((sdp, type) => {
+    remotePeer.setRemoteDescription({ sdp, type })
+  });
+
+  peer.onLocalCandidate((candidate, mid) => {
+    remotePeer.addRemoteCandidate({ candidate, sdpMid: mid })
+  });
+
+  remotePeer.on('onicecandidate', (candidate: RTCIceCandidate | null) => {
+    if (peer.remoteDescription()) {
+      peer.addRemoteCandidate(candidate?.candidate ?? "", candidate?.sdpMid ?? "")
+    }
+  })
+
+  remotePeer.on('onnewrtcsessiondescription', async (description: RTCSessionDescription) => {
+    peer.setRemoteDescription(description.sdp, description.type)
+  })
+
+  remotePeer.on('disconnect', () => {
+    destroy('signaling socket disconnected')
+  })
+
+  peer.onStateChange((state: RTCPeerConnectionState | string) => {
+    if (state === "connected") {
+      // createDataChannelAndClient(id, peer, config)
+    } else if (state === "disconnected") {
+      destroy("iceConnectionState is disconnected")
+    } else if (state === "failed") {
+      destroy("iceConnectionState has failed")
+    } else if (state === "closed") {
+      destroy("iceConnectionState is closed")
+    }
+
+    logger.debug(id, 'state:', state)
+  });
+  peer.onGatheringStateChange((state: RTCIceGatheringState | string) => {
+    logger.debug(id, 'state:', state)
+  });
+  peer.onIceStateChange((state) => {
+    logger.debug(id, 'ice state:', state)
+  });
+  peer.onTrack((track) => {
+    logger.debug(id, 'track:', track)
+  });
 
   setTimeout(() => {
-    if (peer.connectionState === 'new') {
+    if (peer.state() === 'new') {
       destroy('timeout establishing a peer connection')
     }
   }, config.peerTimeout)
 
-  const onSignal = (msg: string) => handleSignal(id, peer, msg)
-  const onDisconnect = () => destroy('signaling socket disconnected')
-  signalingSocket.on('signal', onSignal)
-  signalingSocket.on('disconnect', onDisconnect)
-  signalingSocket.emit('signal', { id })
+  remotePeer.init(id)
 
-  if (peer.connectionState === 'closed') {
+  if (peer.state() === 'closed') {
     destroy('cannot create a channel on a peer that is already in a closed state')
-  } else {
-    const channel = peer.createDataChannel('data-channel', {
-      negotiated: true,
-      id: 0,
-      ...(config.fastButUnreliable ?
-        { ordered: false, maxRetransmits: 0 } :
-        { ordered: true, maxPacketLifeTime: 300 })
-    })
-    createClient(id, channel)
+  } else if (peer.state() === 'new') {
+    createDataChannelAndClient(id, peer, config)
   }
 
   return id
 }
 
-async function handleSignal(id: ID, peer: RTCPeerConnection, msg: any) {
-  const { description, candidate } = msg
-  try {
-    if (description && description.type === 'answer') {
-      await peer.setRemoteDescription(description)
-      logger.debug(id, 'signal:', `accepted a remote ${description.type}`)
-    } else if (candidate) {
-      if (peer.remoteDescription && candidate.candidate) {
-        await peer.addIceCandidate(candidate)
-      }
-    }
-  } catch(err) {
-      logger.error(id, err);
-  }
+function createDataChannelAndClient(id: string, peer: PeerConnection, config: Config) {
+  const channel = peer.createDataChannel('data-channel', {
+    negotiated: true,
+    id: 0,
+    ...(config.fastButUnreliable ? { ordered: false, maxRetransmits: 0 } : { ordered: true, maxPacketLifeTime: 300 })
+  })
+  createClient(id, channel)
 }
-

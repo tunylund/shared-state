@@ -3,10 +3,6 @@ import { on, ACTIONS, act } from './actions'
 
 const channels = new Set<RTCDataChannel>()
 
-// typescript dom library is misising RTCErrorEvent definition
-interface RTCErrorEvent extends Event {
-  error?: { message: string }
-}
 export type ID = string
 interface ClientStatistics {
   clients: ID[]
@@ -18,9 +14,14 @@ let stats: ClientStatistics = {
   statistics: {}
 }
 
+let myId: ID
+on(ACTIONS.INIT, (id: ID) => {
+  myId = id
+})
+
 export function addChannel(channel: RTCDataChannel, lagInterval: number) {
   channel.onopen = () => {
-    logger.debug(`data-channel-${channel.id}:`, 'open')
+    logger.debug(`${myId}:`, 'open data-channel')
     for (let ch of channels) { ch.close() }
     channels.add(channel)
     act(ACTIONS.OPEN)
@@ -28,7 +29,7 @@ export function addChannel(channel: RTCDataChannel, lagInterval: number) {
     startLagPingPong(lagInterval)
   }
   channel.onclose = () => {
-    logger.debug(`data-channel-${channel.id}:`, 'close')
+    logger.debug(`${myId}:`, 'close data-channel')
     act(ACTIONS.CLOSE)
     channel.onerror = channel.onmessage = null
     channels.delete(channel)
@@ -36,7 +37,7 @@ export function addChannel(channel: RTCDataChannel, lagInterval: number) {
   }
   channel.onerror = (error: RTCErrorEvent) => {
     if (error.error?.message === 'Transport channel closed') return;
-    logger.error(`data-channel-${channel.id}:`, error)
+    logger.error(`${myId}:`, error)
     act(ACTIONS.ERROR, [error])
   }
   channel.onmessage = msg => {
@@ -63,7 +64,7 @@ export function send(action: string, ...attrs: any[]) {
     if(channel.readyState === 'open') {
       channel.send(JSON.stringify({action, attrs}))
     } else {
-      logger.error(`could not send to a ${channel.readyState} channel`, action)
+      logger.error(`${myId}: could not send to a ${channel.readyState} channel`, action)
     }
   })
 }

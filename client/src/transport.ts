@@ -1,9 +1,27 @@
 import { act, ACTIONS } from './actions'
 import logger, { setLogLevel } from './logger'
 import { addChannel } from './client'
+import { RemoteRTCPeerConnection } from './RemoteRTCPeerConnection';
 
 declare var io: any;
 declare type Socket = any;
+
+
+interface Config {
+  lagInterval: number
+  debugLog: boolean
+  fastButUnreliable: boolean
+  iceServers: RTCIceServer[]
+  path: string
+}
+
+const defaultConfig: Config = {
+  lagInterval: 3000,
+  debugLog: false,
+  fastButUnreliable: true,
+  iceServers: [],
+  path: '/shared-state'
+}
 
 export function connect(url: string, config?: Partial<Config>): () => void {
   const conf = {...defaultConfig, ...config}
@@ -12,7 +30,7 @@ export function connect(url: string, config?: Partial<Config>): () => void {
   setLogLevel(conf.debugLog)
   socket.on('connect', () => {
     if (peer) closePeer(peer, socket)
-    peer = buildPeer(socket, conf)
+    peer = createRTCConnection(socket, conf)
   })
   socket.on('disconnect', () => {
     if (peer) closePeer(peer, socket)
@@ -36,19 +54,37 @@ function disconnect(socket: Socket) {
   socket.off('disconnect')
 }
 
-function buildPeer(socket: Socket, config: Config) {
+function createRTCConnection(socket: Socket, config: Config) {
   const peer = new RTCPeerConnection({ iceServers: config.iceServers })
+  const remotePeer = new RemoteRTCPeerConnection(socket)
+
+  remotePeer.addEventListener('onnewrtcsessiondescription', async (description: RTCSessionDescription) => {
+    await peer.setRemoteDescription(description)
+    const answer = await peer.createAnswer()
+    await peer.setLocalDescription(answer)
+    remotePeer.setRemoteDescription(peer.localDescription)
+  })
+
+  remotePeer.addEventListener('onicecandidate', (candidate: RTCIceCandidate | null) => {
+    peer.addIceCandidate(candidate)
+  })
   
-  peer.onicecandidate = ({candidate}) => socket.emit('signal', {candidate})
+  peer.onicecandidate = ({ candidate }) => {
+    remotePeer.addRemoteCandidate(candidate)
+  }
+
   peer.oniceconnectionstatechange = () => {
-    if (peer.iceConnectionState === 'closed') closePeer(peer, socket)
-    //@ts-ignore
+    if (peer.iceConnectionState === 'closed') closePeer(peer, remotePeer)
     if (peer.iceConnectionState === 'failed') peer.restartIce()
   }
-  peer.onconnectionstatechange = () => { if (peer.connectionState === 'closed') closePeer(peer, socket) }
-  peer.onsignalingstatechange = () => { if (peer.signalingState === 'closed') closePeer(peer, socket) }
 
-  socket.on('signal', (msg: Signal) => handleSignal(msg, peer, socket))
+  peer.onconnectionstatechange = () => {
+    if (peer.connectionState === 'closed') closePeer(peer, remotePeer)
+  }
+
+  peer.onsignalingstatechange = () => {
+    if (peer.signalingState === 'closed') closePeer(peer, remotePeer)
+  }
 
   addChannel(peer.createDataChannel('data-channel', {
     negotiated: true,
@@ -61,49 +97,9 @@ function buildPeer(socket: Socket, config: Config) {
   return peer
 }
 
-function closePeer(peer: RTCPeerConnection, socket: Socket) {
-  peer.onicecandidate = null
-  peer.oniceconnectionstatechange = null
-  peer.onconnectionstatechange = null
-  peer.onsignalingstatechange = null
-  peer.ondatachannel = null
+function closePeer(peer: RTCPeerConnection, remotePeer: RemoteRTCPeerConnection) {
   peer.close()
-  socket.off('signal')
+  remotePeer.destroy()
   logger.debug('closed the peer')
 }
 
-interface Signal {
-  id?: string
-  description?: RTCSessionDescription
-  candidate?: RTCIceCandidate
-}
-
-async function handleSignal({ id, description, candidate }: Signal, peer: RTCPeerConnection, socket: Socket) {
-  if (id) {
-    act(ACTIONS.INIT, [id])
-  } else if (description && description.type === 'offer') {
-    logger.debug('signal:', `received an offer`)
-    await peer.setRemoteDescription(description)
-    const answer = await peer.createAnswer()
-    await peer.setLocalDescription(answer)
-    socket.emit('signal', { description: peer.localDescription })
-    logger.debug('signal:', `provided an answer`)
-  } else if (candidate) {
-    await peer.addIceCandidate(candidate)
-  }
-}
-
-interface Config {
-  lagInterval: number
-  debugLog: boolean
-  fastButUnreliable: boolean
-  iceServers: RTCIceServer[]
-  path: string
-}
-const defaultConfig: Config = {
-  lagInterval: 3000,
-  debugLog: false,
-  fastButUnreliable: true,
-  iceServers: [],
-  path: '/shared-state'
-}

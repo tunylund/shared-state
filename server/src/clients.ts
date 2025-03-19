@@ -2,14 +2,11 @@ import { ID } from "./transport"
 import logger from './logger'
 import { act, ACTIONS, on, Action, off } from "./actions"
 import { initState } from "./state"
+import { DataChannel } from "node-datachannel/*"
 
 export interface Statistic { lag: number, dataTransferRate: number }
-// typescript dom library is misising RTCErrorEvent definition
-interface RTCErrorEvent extends Event {
-  error?: { message: string }
-}
 
-const channels = new Map<ID, Set<RTCDataChannel>>()
+const channels = new Map<ID, Set<DataChannel>>()
 const stats: {[id: string]: Statistic} = {}
 const transferRates: {[key: string]: { amount: number, collectionStarted: number }} = {}
 
@@ -21,26 +18,27 @@ export function statistics(id: ID) {
   return stats[id]
 }
 
-export function createClient(id: ID, channel: RTCDataChannel) {
-  channel.onopen = () => {
+export function createClient(id: ID, channel: DataChannel) {
+  channel.onOpen(() => {
     logger.debug(id, `data-channel:`, 'open')
     addChannel(id, channel)
-  }
-  channel.onclose = () => {
+  })
+  channel.onClosed(() => {
     logger.debug(id, `data-channel:`, 'close')
-    channel.onerror = channel.onmessage = null
     removeChannel(id, channel)
-  }
-  channel.onerror = (error: RTCErrorEvent) => {
-    if (error.error?.message === 'Transport channel closed') return
+  })
+  channel.onError((error: string) => {
     logger.error(id, `data-channel:`, error)
     act(id, ACTIONS.ERROR, error)
-  }
-  channel.onmessage = msg => {
-    const {action, attrs} = JSON.parse(msg.data)
+  })
+  channel.onMessage((msg: string | Buffer | ArrayBuffer) => {
+    const {action, attrs} = JSON.parse(msg.toString())
     logger.debug(id, `data-channel:`, action)
     act(id, action, ...(attrs || []))
-  }
+  })
+  channel.onBufferedAmountLow(() => {
+    logger.debug(id, `data-channel:`, 'buffered amount low')
+  })
 }
 
 export function destroyClient(id: ID) {
@@ -55,14 +53,14 @@ export function destroyClient(id: ID) {
 
 export function send(id: ID, action: Action, ...attrs: any) {
   channels.get(id)?.forEach(channel => {
-    if(channel.readyState === 'open') {
+    if(channel.isOpen()) {
       const msg = JSON.stringify({action, attrs})
       collectTransferRate(id, msg)
       logger.debug(id, 'send', action)
-      try { channel.send(msg) }
-      catch (err) { logger.error(id, `could not send to a '${channel.readyState}' channel`, action) }
+      try { channel.sendMessage(msg) }
+      catch (err) { logger.error(id, `could not send to a '${id}' channel`, action) }
     } else {
-      logger.debug(id, `could not send to a '${channel.readyState}' channel`, action)
+      logger.debug(id, `could not send to a '${id}' channel`, action)
     }
   })
 }
@@ -98,8 +96,8 @@ function updateLag(id: ID, lag: number) {
   updateClientStates()
 }
 
-function ensureChannelSetExists(id: ID): Set<RTCDataChannel> {
-  const chs = channels.get(id) || new Set<RTCDataChannel>()
+function ensureChannelSetExists(id: ID): Set<DataChannel> {
+  const chs = channels.get(id) || new Set<DataChannel>()
   channels.set(id, chs)
   return chs
 }
@@ -110,7 +108,7 @@ function ensureStatsExist(id: ID): Statistic {
   return stat
 }
 
-function addChannel(id: ID, channel: RTCDataChannel) {
+function addChannel(id: ID, channel: DataChannel) {
   ensureStatsExist(id)
   const currentChannels = ensureChannelSetExists(id)
   currentChannels.add(channel)
@@ -121,7 +119,7 @@ function addChannel(id: ID, channel: RTCDataChannel) {
   on(id, ACTIONS.PING, (theirTime: number) => updateLag(id, Date.now() - theirTime))
 }
 
-function removeChannel(id: ID, channel: RTCDataChannel) {
+function removeChannel(id: ID, channel: DataChannel) {
   const currentChannels = ensureChannelSetExists(id)
   currentChannels.delete(channel)
   if (currentChannels.size === 0) destroyClient(id)

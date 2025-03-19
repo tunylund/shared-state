@@ -12,10 +12,10 @@ function log(message) {
 
 const initialState = JSON.parse(process.argv.find(arg => arg.startsWith('state=')).split('=')[1])
 const server = createServer((req, res) => {})
-start(server, initialState, id => {})
+start(server, initialState, id => {}, { debugLog: false })
 
 process.on('disconnect', () => {
-  log('closing server')
+  log('Received disconnect event from the main process, closing server')
   stop()
   server.close(() => process.exit(0))
 })

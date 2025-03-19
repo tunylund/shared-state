@@ -47,7 +47,7 @@ start(server, {cubes: []}, (id: string) => {
   on(id, ACTIONS.CLOSE, () => {
     removeCube(id)
   })
-})
+}, { debugLog: true })
 
 let lastStep = Date.now()
 setInterval(() => {
