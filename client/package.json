@@ -27,7 +27,8 @@
     "src/*"
   ],
   "scripts": {
-    "build": "./build.sh"
+    "build": "./build.sh",
+    "test": "echo no tests here as this is mostly a library for network integrations. see integration-tests for tests."
   },
   "author": "Tuomas Nylund",
   "license": "MIT",
