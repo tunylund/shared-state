@@ -9,7 +9,7 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "./build.sh",
-    "start": "http-server ."
+    "start": "http-server . -c-1"
   },
   "dependencies": {
     "shared-state-client": "file:../../client",
