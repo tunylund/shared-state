@@ -1,10 +1,11 @@
-import { ID } from './transport'
+import { ID } from './clients.js'
 
 const actions = new Map<ID, Map<Action, Set<Function>>>()
 const emptySet = new Set<any>()
 
 export type Action = string
 export enum ACTIONS {
+  INIT = 'init',
   OPEN = 'open',
   CLOSE = 'close',
   ERROR = 'error',

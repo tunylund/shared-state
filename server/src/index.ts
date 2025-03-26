@@ -1,7 +1,7 @@
-import { start, stop } from "./transport";
-import { state, update } from "./state";
-import { on, off, ACTIONS } from "./actions";
-import { send, broadcast, broadcastToOthers, clients, statistics } from './clients'
+import { start, stop } from "./transport.js";
+import { state, update } from "./state.js";
+import { on, off, ACTIONS } from "./actions.js";
+import { send, broadcast, broadcastToOthers, clients, statistics } from './clients.js'
 
 export {
   start, stop,

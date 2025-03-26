@@ -1,12 +1,13 @@
-import { ID } from "./transport"
-import logger from './logger'
-import { act, ACTIONS, on, Action, off } from "./actions"
-import { initState } from "./state"
-import { DataChannel } from "node-datachannel/*"
+import logger from './logger.js'
+import { act, ACTIONS, on, Action, off } from "./actions.js"
+import { initState } from "./state.js"
+import { Socket } from "socket.io"
+import { v4 as uuid } from 'uuid'
 
 export interface Statistic { lag: number, dataTransferRate: number }
+export type ID = string
 
-const channels = new Map<ID, Set<DataChannel>>()
+const channels = new Map<ID, Socket>()
 const stats: {[id: string]: Statistic} = {}
 const transferRates: {[key: string]: { amount: number, collectionStarted: number }} = {}
 
@@ -18,31 +19,26 @@ export function statistics(id: ID) {
   return stats[id]
 }
 
-export function createClient(id: ID, channel: DataChannel) {
-  channel.onOpen(() => {
-    logger.debug(id, `data-channel:`, 'open')
-    addChannel(id, channel)
+export function createClient(socket: Socket): ID {
+  const id = uuid()
+
+  addChannel(id, socket)
+  socket.on("disconnect", (reason, details) => {
+    logger.debug(id, 'disconnect', reason, details)
+    removeChannel(id, socket)
   })
-  channel.onClosed(() => {
-    logger.debug(id, `data-channel:`, 'close')
-    removeChannel(id, channel)
-  })
-  channel.onError((error: string) => {
-    logger.error(id, `data-channel:`, error)
-    act(id, ACTIONS.ERROR, error)
-  })
-  channel.onMessage((msg: string | Buffer | ArrayBuffer) => {
+  socket.on("message", (msg: string) => {
     const {action, attrs} = JSON.parse(msg.toString())
-    logger.debug(id, `data-channel:`, action)
+    logger.debug(id, 'message', action)
     act(id, action, ...(attrs || []))
   })
-  channel.onBufferedAmountLow(() => {
-    logger.debug(id, `data-channel:`, 'buffered amount low')
-  })
+
+  return id
 }
 
 export function destroyClient(id: ID) {
-  channels.get(id)?.forEach(ch => ch.close())
+  channels.get(id)?.disconnect(true)
+  channels.get(id)?.removeAllListeners()
   channels.delete(id)
   delete stats[id]
   delete transferRates[id]
@@ -52,17 +48,16 @@ export function destroyClient(id: ID) {
 }
 
 export function send(id: ID, action: Action, ...attrs: any) {
-  channels.get(id)?.forEach(channel => {
-    if(channel.isOpen()) {
-      const msg = JSON.stringify({action, attrs})
-      collectTransferRate(id, msg)
-      logger.debug(id, 'send', action)
-      try { channel.sendMessage(msg) }
-      catch (err) { logger.error(id, `could not send to a '${id}' channel`, action) }
-    } else {
-      logger.debug(id, `could not send to a '${id}' channel`, action)
-    }
-  })
+  const channel = channels.get(id)
+  if(channel && channel.connected) {
+    const msg = JSON.stringify({action, attrs})
+    collectTransferRate(id, msg)
+    logger.debug(id, 'send', action)
+    try { channel.emit("message", msg) }
+    catch (err) { logger.error(id, `could not send to a '${id}' channel`, action) }
+  } else {
+    logger.debug(id, `could not send to a '${id}' channel`, action)
+  }
 }
   
 export function broadcast(action: Action, ...attrs: any) {
@@ -96,33 +91,26 @@ function updateLag(id: ID, lag: number) {
   updateClientStates()
 }
 
-function ensureChannelSetExists(id: ID): Set<DataChannel> {
-  const chs = channels.get(id) || new Set<DataChannel>()
-  channels.set(id, chs)
-  return chs
-}
-
 function ensureStatsExist(id: ID): Statistic {
   const stat = stats[id] || {lag: Infinity, dataTransferRate: 0}
   stats[id] = stat
   return stat
 }
 
-function addChannel(id: ID, channel: DataChannel) {
+function addChannel(id: ID, socket: Socket) {
   ensureStatsExist(id)
-  const currentChannels = ensureChannelSetExists(id)
-  currentChannels.add(channel)
-  for (let ch of currentChannels) if(ch !== channel) ch.close()
+  channels.set(id, socket)
+  send(id, ACTIONS.INIT, id)
   initState(id)
   updateClientStates()
   act(id, ACTIONS.OPEN)
   on(id, ACTIONS.PING, (theirTime: number) => updateLag(id, Date.now() - theirTime))
 }
 
-function removeChannel(id: ID, channel: DataChannel) {
-  const currentChannels = ensureChannelSetExists(id)
-  currentChannels.delete(channel)
-  if (currentChannels.size === 0) destroyClient(id)
+function removeChannel(id: ID, socket: Socket) {
+  if (channels.get(id) === socket) {
+    channels.delete(id)
+  }
 }
 
 function updateClientStates() {

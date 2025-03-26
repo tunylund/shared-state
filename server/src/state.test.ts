@@ -1,6 +1,6 @@
-import { init, update, state, initState } from './state'
-import { ACTIONS } from "./actions"
-import { broadcast, send } from './clients'
+import { init, update, state, initState } from './state.js'
+import { ACTIONS } from "./actions.js"
+import { broadcast, send } from './clients.js'
 jest.mock('./clients')
 
 interface SomeState {

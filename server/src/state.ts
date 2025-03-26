@@ -1,8 +1,8 @@
-import { ID } from "./transport"
-import { ACTIONS } from "./actions"
+import { ID } from "./clients.js"
+import { ACTIONS } from "./actions.js"
 import deepDiff from 'deep-diff'
 import rfdc from 'rfdc'
-import { broadcast, send } from "./clients"
+import { broadcast, send } from "./clients.js"
 
 const deepClone = rfdc()
 
@@ -20,7 +20,7 @@ export function init<T>(state: T) {
 }
 
 export function initState(id: ID) {
-  send(id, ACTIONS.STATE_INIT, state())
+  send(id, ACTIONS.STATE_INIT, current)
 }
 
 function compressKeys(diff: any): any {

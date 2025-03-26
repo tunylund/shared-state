@@ -10,7 +10,7 @@ describe('integration-tests', () => {
 
   function buildClient(): Promise<ChildProcess> {
     return new Promise((resolve, reject) => {
-      const client = spawn('node', ['--experimental-modules', './test/integration-test-client.mjs', `port=${port}`], { stdio: ['ipc'] })
+      const client = spawn('tsx', ['./test/integration-test-client.ts', `port=${port}`], { stdio: ['ipc'] })
       client.stdout?.pipe(process.stdout)
       client.stderr?.pipe(process.stderr)
       client.on('message', () => resolve(client))
@@ -22,10 +22,9 @@ describe('integration-tests', () => {
   function buildServer(): Promise<[ChildProcess, number]> {
     const initialState: State = {state: 'initial'}
     return new Promise((resolve, reject) => {
-      const server = spawn('node', ['--experimental-modules', './test/integration-test-server.js', `state=${JSON.stringify(initialState)}`], { stdio: ['ipc'] })
+      const server = spawn('tsx', ['./test/integration-test-server.ts', `state=${JSON.stringify(initialState)}`], { stdio: ['ipc'] })
       server.stdout?.pipe(process.stdout)
       server.stderr?.pipe(process.stderr)
-      server.on('close', () => console.log('server closed'))
       server.on('message', (port: number) => resolve([server, port]))
       server.on('error', reject)
       server.on('close', reject)
@@ -36,7 +35,7 @@ describe('integration-tests', () => {
     return new Promise(resolve => {
       if (target && target.connected) {
         target.on('exit', () => resolve(0))
-        target.disconnect()
+        target.kill()
       } else resolve(0)
     })
   }
@@ -53,7 +52,7 @@ describe('integration-tests', () => {
 
   function send<T>(target: ChildProcess, message: Serializable): Promise<T> {
     return new Promise(resolve => {
-      target.on('message', resolve)
+      target.once('message', resolve)
       target.send(message)
     })
   }

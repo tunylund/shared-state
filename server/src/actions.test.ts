@@ -1,4 +1,4 @@
-import { on, off, act } from "./actions"
+import { on, off, act } from "./actions.js"
 
 describe('actions', () => {
 

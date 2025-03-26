@@ -1,7 +1,6 @@
-import logger from './logger'
-import { on, ACTIONS, act } from './actions'
-
-const channels = new Set<RTCDataChannel>()
+import logger from './logger.js'
+import { on, ACTIONS, act } from './actions.js'
+import { Socket } from 'socket.io-client'
 
 export type ID = string
 interface ClientStatistics {
@@ -15,35 +14,40 @@ let stats: ClientStatistics = {
 }
 
 let myId: ID
+let _socket: Socket
+
 on(ACTIONS.INIT, (id: ID) => {
   myId = id
 })
 
-export function addChannel(channel: RTCDataChannel, lagInterval: number) {
-  channel.onopen = () => {
-    logger.debug(`${myId}:`, 'open data-channel')
-    for (let ch of channels) { ch.close() }
-    channels.add(channel)
-    act(ACTIONS.OPEN)
-    on(ACTIONS.CLIENT_UPDATE, (newStats: ClientStatistics) => stats = newStats)
+export function addChannel(socket: Socket, lagInterval: number) {
+  _socket = socket
+  logger.debug('open socket')
+  act(ACTIONS.OPEN)
+  on(ACTIONS.CLIENT_UPDATE, (newStats: ClientStatistics) => stats = newStats)
+
+  socket.on("connect", () => {
+    logger.debug(`${myId}:`, 'connect socket')
     startLagPingPong(lagInterval)
-  }
-  channel.onclose = () => {
-    logger.debug(`${myId}:`, 'close data-channel')
+  })
+
+  socket.on("disconnect", (reason, details) => {
+    logger.debug(`${myId}:`, 'close socket')
     act(ACTIONS.CLOSE)
-    channel.onerror = channel.onmessage = null
-    channels.delete(channel)
-    if (channels.size === 0) stopLagPingPong()
-  }
-  channel.onerror = (error: RTCErrorEvent) => {
-    if (error.error?.message === 'Transport channel closed') return;
+    socket.off()
+    stopLagPingPong()
+  });
+
+  socket.on("connect_error", (error) => {
     logger.error(`${myId}:`, error)
     act(ACTIONS.ERROR, [error])
-  }
-  channel.onmessage = msg => {
-    const {action, attrs} = JSON.parse(msg.data)
+  })
+
+  socket.on("message", (msg) => {
+    logger.debug('message: ', msg)
+    const {action, attrs} = JSON.parse(msg)
     act(action, attrs)
-  }
+  })
 }
 
 let lagPingTimeout: any
@@ -60,13 +64,11 @@ function stopLagPingPong() {
 }
 
 export function send(action: string, ...attrs: any[]) {
-  channels.forEach(channel => {
-    if(channel.readyState === 'open') {
-      channel.send(JSON.stringify({action, attrs}))
-    } else {
-      logger.error(`${myId}: could not send to a ${channel.readyState} channel`, action)
-    }
-  })
+  if(_socket.connected) {
+    _socket.send(JSON.stringify({action, attrs}))
+  } else {
+    logger.error(`${myId}: could not send to a disconnected socket`, action)
+  }
 }
 
 export function clients() {

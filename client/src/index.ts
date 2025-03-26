@@ -1,5 +1,5 @@
-import { connect } from './transport'
-import { send, clients, statistics, Statistic } from './client'
-import { state } from './state'
-import { on, off, ACTIONS } from './actions'
+import { connect } from './transport.js'
+import { send, clients, statistics, Statistic } from './client.js'
+import { state } from './state.js'
+import { on, off, ACTIONS } from './actions.js'
 export { connect, send, clients, statistics, Statistic, state, on, off, ACTIONS }

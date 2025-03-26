@@ -9,7 +9,6 @@
     "shared state",
     "synchronized state",
     "state",
-    "webrtc",
     "websockets",
     "client",
     "game"
@@ -19,8 +18,13 @@
     "url": "https://github.com/tunylund/shared-state"
   },
   "main": "./dist/index.js",
-  "exports": "./dist/bundle.mjs",
-  "types": "dist/index.d.ts",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "type": "module",
   "files": [
     "dist/*",
