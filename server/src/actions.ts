@@ -1,12 +1,12 @@
+import { EventEmitter } from 'node:events';
 import { ID } from './clients.js'
 
-const actions = new Map<ID, Map<Action, Set<Function>>>()
-const emptySet = new Set<any>()
+const eventEmittersForEachClient = new Map<ID, EventEmitter>()
 
 export type Action = string
 export enum ACTIONS {
   INIT = 'init',
-  OPEN = 'open',
+  CONNECTED = 'connected',
   CLOSE = 'close',
   ERROR = 'error',
   PING = 'ping',
@@ -16,25 +16,20 @@ export enum ACTIONS {
 }
 
 export function act(id: ID, action: Action, ...attrs: any[]) {
-  for (let fn of actions.get(id)?.get(action) || emptySet) {
-    try {
-      fn(...attrs)
-    } catch (err) {
-      console.error(id, err)
-    }
+  eventEmittersForEachClient.get(id)?.emit(action, ...attrs)
+}
+
+export function on(id: ID, action: Action, fn: (...args: any[]) => void) {
+  const emitter = eventEmittersForEachClient.get(id) || new EventEmitter()
+  eventEmittersForEachClient.set(id, emitter)
+  emitter.on(action, fn)
+}
+
+export function off(id: ID, action?: Action, fn?: (...args: any[]) => void) {
+  const emitter = eventEmittersForEachClient.get(id)
+  if (action && fn) emitter?.removeListener(action, fn)
+  else {
+    emitter?.removeAllListeners(action)
+    if (emitter?.eventNames.length === 0) eventEmittersForEachClient.delete(id)
   }
-}
-
-export function on(id: ID, action: Action, fn: Function) {
-  const accs = actions.get(id) || new Map<Action, Set<Function>>()
-  const fns = accs.get(action) || new Set()
-  actions.set(id, accs)
-  accs.set(action, fns)
-  fns.add(fn)
-}
-
-export function off(id: ID, action?: Action, fn?: Function) {
-  if (action && fn) actions.get(id)?.get(action)?.delete(fn)
-  else if (action) actions.get(id)?.delete(action)
-  else actions.delete(id)
 }

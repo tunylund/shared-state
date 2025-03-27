@@ -237,7 +237,7 @@ See: https://socket.io/docs/client-api/
   If the `action` is omitted, de-registers everything for the `id`.
 
 * `enum ACTIONS` Predefined actions that the system uses for basic setup
-  * `OPEN` Triggered when a new client is happily connected.
+  * `CONNECTED` Triggered when a new client is happily connected.
   * `CLOSE` Triggered when a new client is happily connected.
   * `ERROR` Triggered with any error from the system
   * `PING` An action sent by the clients for gathering lag statistics
@@ -299,7 +299,7 @@ _(because all libraries need events)_
 
 * `enum ACTIONS` Predefined actions that the system uses for basic setup
   * `INIT` An action that is used to get the ID from the server.
-  * `OPEN` Triggered when the connection is happily established.
+  * `CONNECTED` Triggered when the connection is happily established.
   * `CLOSE` Triggered when the connection is closed.
   * `ERROR` Triggered with any error from the system
   * `PING (internal)` An action sent by the clients for gathering lag statistics

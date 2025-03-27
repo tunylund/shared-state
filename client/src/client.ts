@@ -16,14 +16,14 @@ let stats: ClientStatistics = {
 let myId: ID
 let _socket: Socket
 
-on(ACTIONS.INIT, (id: ID) => {
+on(ACTIONS.INIT, (id: ID, _: any) => {
   myId = id
 })
 
 export function addChannel(socket: Socket, lagInterval: number) {
   _socket = socket
   logger.debug('open socket')
-  act(ACTIONS.OPEN)
+  act(ACTIONS.CONNECTED)
   on(ACTIONS.CLIENT_UPDATE, (newStats: ClientStatistics) => stats = newStats)
 
   socket.on("connect", () => {
@@ -32,7 +32,7 @@ export function addChannel(socket: Socket, lagInterval: number) {
   })
 
   socket.on("disconnect", (reason, details) => {
-    logger.debug(`${myId}:`, 'close socket')
+    logger.debug(`${myId}:`, 'close socket', reason, details)
     act(ACTIONS.CLOSE)
     socket.off()
     stopLagPingPong()

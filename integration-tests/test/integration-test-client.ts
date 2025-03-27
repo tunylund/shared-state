@@ -29,5 +29,5 @@ process.on('message', (msg: string) => {
 
 let myId: string
 on(ACTIONS.INIT, (id: string) => myId = id)
-on(ACTIONS.OPEN, () => processSend('connected'))
+on(ACTIONS.CONNECTED, () => processSend('connected'))
 on(ACTIONS.ERROR, (err: string) => console.error('integration-test-client:', err))

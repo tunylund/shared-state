@@ -2,8 +2,7 @@ import { createServer } from 'http'
 import { start, stop, state, update, clients } from 'shared-state-server'
 
 function processSend(message: any) {
-  if (process.send) process.send(message)
-  else log(`could not send to process send ${message}`)
+  process.send && process.send(message)
 }
 
 function log(message: string) {

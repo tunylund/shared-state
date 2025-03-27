@@ -1,18 +1,18 @@
 import logger from './logger.js'
 import { act, ACTIONS, on, Action, off } from "./actions.js"
-import { initState } from "./state.js"
+import { state } from "./state.js"
 import { Socket } from "socket.io"
 import { v4 as uuid } from 'uuid'
 
 export interface Statistic { lag: number, dataTransferRate: number }
 export type ID = string
 
-const channels = new Map<ID, Socket>()
+const clientSockets = new Map<ID, Socket>()
 const stats: {[id: string]: Statistic} = {}
 const transferRates: {[key: string]: { amount: number, collectionStarted: number }} = {}
 
 export function clients() {
-  return Array.from(channels.keys())
+  return Array.from(clientSockets.keys())
 }
 
 export function statistics(id: ID) {
@@ -22,10 +22,10 @@ export function statistics(id: ID) {
 export function createClient(socket: Socket): ID {
   const id = uuid()
 
-  addChannel(id, socket)
+  addClientSocket(id, socket)
   socket.on("disconnect", (reason, details) => {
     logger.debug(id, 'disconnect', reason, details)
-    removeChannel(id, socket)
+    removeClientSocket(id, socket)
   })
   socket.on("message", (msg: string) => {
     const {action, attrs} = JSON.parse(msg.toString())
@@ -37,18 +37,18 @@ export function createClient(socket: Socket): ID {
 }
 
 export function destroyClient(id: ID) {
-  channels.get(id)?.disconnect(true)
-  channels.get(id)?.removeAllListeners()
-  channels.delete(id)
+  clientSockets.get(id)?.disconnect(true)
+  clientSockets.get(id)?.removeAllListeners()
+  clientSockets.delete(id)
   delete stats[id]
   delete transferRates[id]
   act(id, ACTIONS.CLOSE)
   off(id)
-  updateClientStates()
+  broadcastClientStatsUpdate()
 }
 
 export function send(id: ID, action: Action, ...attrs: any) {
-  const channel = channels.get(id)
+  const channel = clientSockets.get(id)
   if(channel && channel.connected) {
     const msg = JSON.stringify({action, attrs})
     collectTransferRate(id, msg)
@@ -61,13 +61,13 @@ export function send(id: ID, action: Action, ...attrs: any) {
 }
   
 export function broadcast(action: Action, ...attrs: any) {
-  for (let id of channels.keys()) {
+  for (let id of clientSockets.keys()) {
     send(id, action, ...attrs)
   }
 }
 
 export function broadcastToOthers(notThisId: ID, action: Action, ...attrs: any) {
-  for (let id of channels.keys()) {
+  for (let id of clientSockets.keys()) {
     if (id !== notThisId) send(id, action, ...attrs)
   }
 }
@@ -77,43 +77,42 @@ function collectTransferRate(id: ID, msg: string) {
   collector.amount += msg.length
   const timeCollected = Date.now() - collector.collectionStarted
   if (timeCollected > 1000) {
-    const stat = ensureStatsExist(id)
+    const stat = ensureStatsExistForClient(id)
     stat.dataTransferRate = collector.amount / timeCollected
     collector.amount = 0
     collector.collectionStarted = Date.now()
-    updateClientStates()
+    broadcastClientStatsUpdate()
   }
 }
 
 function updateLag(id: ID, lag: number) {
-  const stat = ensureStatsExist(id)
+  const stat = ensureStatsExistForClient(id)
   stat.lag = lag
-  updateClientStates()
+  broadcastClientStatsUpdate()
 }
 
-function ensureStatsExist(id: ID): Statistic {
+function ensureStatsExistForClient(id: ID): Statistic {
   const stat = stats[id] || {lag: Infinity, dataTransferRate: 0}
   stats[id] = stat
   return stat
 }
 
-function addChannel(id: ID, socket: Socket) {
-  ensureStatsExist(id)
-  channels.set(id, socket)
-  send(id, ACTIONS.INIT, id)
-  initState(id)
-  updateClientStates()
-  act(id, ACTIONS.OPEN)
+function addClientSocket(id: ID, socket: Socket) {
+  clientSockets.set(id, socket)
+  ensureStatsExistForClient(id)
+  send(id, ACTIONS.INIT, id, state())
+  broadcastClientStatsUpdate()
+  act(id, ACTIONS.CONNECTED)
   on(id, ACTIONS.PING, (theirTime: number) => updateLag(id, Date.now() - theirTime))
 }
 
-function removeChannel(id: ID, socket: Socket) {
-  if (channels.get(id) === socket) {
-    channels.delete(id)
+function removeClientSocket(id: ID, socket: Socket) {
+  if (clientSockets.get(id) === socket) {
+    clientSockets.delete(id)
   }
 }
 
-function updateClientStates() {
+function broadcastClientStatsUpdate() {
   broadcast(ACTIONS.CLIENT_UPDATE, {
     clients: clients(),
     statistics: stats

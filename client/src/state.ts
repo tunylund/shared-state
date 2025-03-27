@@ -13,7 +13,7 @@ function decompressKeys(diff: any): Diff<any, any> {
   return result
 }
 
-on(ACTIONS.STATE_INIT, (newState: any) => current = newState)
+on(ACTIONS.INIT, (_: any, newState: any) => current = newState)
 
 on(ACTIONS.STATE_UPDATE, (diffs: Array<Diff<any, any>>) => {
   diffs.map(decompressKeys).map(diff => deepDiff.applyChange(current, {}, diff))

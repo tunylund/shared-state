@@ -5,7 +5,7 @@ export type Action = string
 
 export enum ACTIONS {
   INIT = 'init',
-  OPEN = 'open',
+  CONNECTED = 'connected',
   CLOSE = 'close',
   ERROR = 'error',
   PING = 'ping',
