@@ -1,5 +1,5 @@
 import io from 'socket.io-client'
-import { connect, on, ACTIONS, state, statistics } from 'shared-state-client'
+import { connect, on, ACTIONS, state, metrics } from 'shared-state-client'
 
 (global as any).io = io
 
@@ -14,7 +14,9 @@ function processSend (msg: any) {
 const portArg = process.argv.find(arg => arg.startsWith('port='))
 const port = portArg?.split('=')[1]
 log(`connecting to 'http://localhost:${port}'`)
-const disconnect = connect(`http://localhost:${port}`, { debugLog: true })
+const disconnect = connect(`http://localhost:${port}`, {
+  debugLog: true
+})
 
 process.on('disconnect', () => {
   log('Received disconnect event from the main process, closing client')
@@ -23,7 +25,7 @@ process.on('disconnect', () => {
 process.on('message', (msg: string) => {
   log(msg)
   if(msg === 'getState') processSend(state())
-  if(msg === 'getStatistics') processSend(statistics(myId))
+  if(msg === 'getStatistics') processSend(metrics(myId))
   if(msg === 'getId') processSend(myId)
 })
 

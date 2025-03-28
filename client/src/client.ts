@@ -3,15 +3,12 @@ import { on, ACTIONS, act } from './actions.js'
 import { Socket } from 'socket.io-client'
 
 export type ID = string
-interface ClientStatistics {
-  clients: ID[]
-  statistics: { [id: string]: Statistic }
+export interface ConnectionMetrics {
+  lag: number,
+  dataTransferRate: number
 }
-export interface Statistic { lag: number, dataTransferRate: number }
-let stats: ClientStatistics = {
-  clients: [],
-  statistics: {}
-}
+let clientIds: ID[] = []
+let clientMetrics: { [id: ID]: ConnectionMetrics } = {}
 
 let myId: ID
 let _socket: Socket
@@ -24,11 +21,12 @@ export function addChannel(socket: Socket, lagInterval: number) {
   _socket = socket
   logger.debug('open socket')
   act(ACTIONS.CONNECTED)
-  on(ACTIONS.CLIENT_UPDATE, (newStats: ClientStatistics) => stats = newStats)
+  on(ACTIONS.CLIENT_UPDATE, (newClientIds: ID[]) => clientIds = newClientIds)
+  on(ACTIONS.CLIENT_METRICS_UPDATE, (newClientMetrics: { [id: string]: ConnectionMetrics }) => clientMetrics = newClientMetrics)
+  startLagPingPong(lagInterval)
 
   socket.on("connect", () => {
     logger.debug(`${myId}:`, 'connect socket')
-    startLagPingPong(lagInterval)
   })
 
   socket.on("disconnect", (reason, details) => {
@@ -72,9 +70,9 @@ export function send(action: string, ...attrs: any[]) {
 }
 
 export function clients() {
-  return stats.clients
+  return clientIds
 }
 
-export function statistics(id: string) {
-  return stats.statistics[id]
+export function metrics(id: ID) {
+  return clientMetrics[id]
 }

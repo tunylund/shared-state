@@ -12,7 +12,8 @@ export enum ACTIONS {
   PING = 'ping',
   STATE_INIT = 'state-init',
   STATE_UPDATE = 'state-update',
-  CLIENT_UPDATE = 'client-update'
+  CLIENT_UPDATE = 'client-update',
+  CLIENT_METRICS_UPDATE = 'client-metrics-update',
 }
 
 export function act(id: ID, action: Action, ...attrs: any[]) {
