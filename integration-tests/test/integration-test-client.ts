@@ -1,35 +1,44 @@
 import io from 'socket.io-client'
 import { connect, on, ACTIONS, state, metrics } from 'shared-state-client'
+import { listenToMessagesFromParentProcess, passActionsToParentProcess } from './inter-process-messaging.js'
 
 (global as any).io = io
 
-function log(message: string) {
+function log(message: any) {
   console.log('integration-test-client:', message)
-}
-
-function processSend (msg: any) {
-  process.send && msg && process.send(msg)
 }
 
 const portArg = process.argv.find(arg => arg.startsWith('port='))
 const port = portArg?.split('=')[1]
-log(`connecting to 'http://localhost:${port}'`)
-const disconnect = connect(`http://localhost:${port}`, {
-  debugLog: true
-})
+let myId: string
+let disconnect: () => void = () => {}
 
-process.on('disconnect', () => {
+process.on('exit', () => {
   log('Received disconnect event from the main process, closing client')
   disconnect()
 })
-process.on('message', (msg: string) => {
-  log(msg)
-  if(msg === 'getState') processSend(state())
-  if(msg === 'getStatistics') processSend(metrics(myId))
-  if(msg === 'getId') processSend(myId)
+
+listenToMessagesFromParentProcess({
+  connect: () => {
+    return new Promise(resolve => {
+      on(ACTIONS.INIT, (id: string, initialState: any) =>  {
+        myId = id
+        resolve(myId)
+      })
+  
+      log(`connecting to 'http://localhost:${port}'`)
+      disconnect = connect(`http://localhost:${port}`, {
+        debugLog: true
+      })
+    })
+  },
+  getState: () => state(),
+  getStatistics: () => metrics(myId),
+  getId: () => myId,
 })
 
-let myId: string
-on(ACTIONS.INIT, (id: string) => myId = id)
-on(ACTIONS.CONNECTED, () => processSend('connected'))
-on(ACTIONS.ERROR, (err: string) => console.error('integration-test-client:', err))
+passActionsToParentProcess([
+  ACTIONS.CONNECTED,
+  ACTIONS.DISCONNECTED,
+  'custom-action',
+], on)

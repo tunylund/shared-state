@@ -1,4 +1,4 @@
-import { connect, send, on, ACTIONS, state, statistics } from 'shared-state-client/dist/index'
+import { connect, send, on, ACTIONS, state, metrics } from 'shared-state-client/dist/index'
 
 interface Cube {
   id: string
@@ -63,8 +63,8 @@ function draw(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, myId: st
     ctx.fillRect(cube.x, cube.y, cube.w, cube.h)
   })
 
-  if (statistics(myId)) {
-    const { lag, dataTransferRate } = statistics(myId)
+  if (metrics(myId)) {
+    const { lag, dataTransferRate } = metrics(myId)
     const text = `use ←↑↓→ to move,  lag: ${lag}ms   updates: ${updateFps}/s   data: ${dataTransferRate.toFixed(0)}b/s`
     ctx.font = '12px Arial'
     ctx.fillStyle = 'white'

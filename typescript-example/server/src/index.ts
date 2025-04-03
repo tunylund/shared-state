@@ -33,21 +33,25 @@ function removeCube(id: string) {
 }
 
 const server = createServer((req, res) => {})
-start(server, {cubes: []}, (id: string) => {
+start(server, {cubes: []}, { debugLog: true })
+
+on(ACTIONS.CONNECTED, (id: string) => {
   addCube(id)
-  on(id, 'input', (dir: Dir) => {
-    const cube = state<GameState>().cubes.find(cube => cube.id === id)
-    if (cube) {
-      const speed = 0.05
-      cube.velx = dir.x * speed
-      cube.vely = dir.y * speed
-      update(state())
-    }
-  })
-  on(id, ACTIONS.CLOSE, () => {
-    removeCube(id)
-  })
-}, { debugLog: true })
+})
+
+on('input', (id: string, dir: Dir) => {
+  const cube = state<GameState>().cubes.find(cube => cube.id === id)
+  if (cube) {
+    const speed = 0.05
+    cube.velx = dir.x * speed
+    cube.vely = dir.y * speed
+    update(state())
+  }
+})
+
+on(ACTIONS.DISCONNECTED, (id: string) => {
+  removeCube(id)
+})
 
 let lastStep = Date.now()
 setInterval(() => {

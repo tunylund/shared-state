@@ -13,12 +13,8 @@ interface TransferRateCollector {
 const clientMetrics: {[id: string]: ConnectionMetrics} = {}
 const transferRatesCollectors: {[key: string]: TransferRateCollector} = {}
 
-export function getClientMetrics() {
-  return clientMetrics
-}
-
-export function metrics(id: ID) {
-  return clientMetrics[id]
+export function metrics(id?: ID) {
+  return id ? clientMetrics[id] : clientMetrics
 }
 
 export function deleteMetrics(id: ID) {
@@ -58,5 +54,5 @@ function ensureMetricsExistForClient(id: ID): ConnectionMetrics {
 }
 
 function broadcastClientsUpdate() {
-  broadcast(ACTIONS.CLIENT_METRICS_UPDATE, getClientMetrics())
+  broadcast(ACTIONS.CLIENT_METRICS_UPDATE, metrics())
 }

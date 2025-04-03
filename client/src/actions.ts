@@ -6,7 +6,7 @@ export type Action = string
 export enum ACTIONS {
   INIT = 'init',
   CONNECTED = 'connected',
-  CLOSE = 'close',
+  DISCONNECTED = 'disconnected',
   ERROR = 'error',
   PING = 'ping',
   STATE_INIT = 'state-init',
@@ -15,9 +15,9 @@ export enum ACTIONS {
   CLIENT_METRICS_UPDATE = 'client-metrics-update',
 }
 
-export function act(action: Action, attrs: any[] = []) {
+export function act(action: Action, ...args: any[]) {
   try {
-    actions.get(action)?.forEach(fn => fn(...attrs))
+    actions.get(action)?.forEach(fn => fn(...args))
   } catch (err) {
     console.error(err)
   }

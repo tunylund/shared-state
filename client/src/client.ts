@@ -13,16 +13,35 @@ let clientMetrics: { [id: ID]: ConnectionMetrics } = {}
 let myId: ID
 let _socket: Socket
 
-on(ACTIONS.INIT, (id: ID, _: any) => {
-  myId = id
+const idResolutionWaiter = new Promise<void>(resolve => {
+  on(ACTIONS.INIT, (id: ID, _: any) => {
+    myId = id
+    resolve()
+  })
+})
+
+const clientUpdateWaiter = new Promise<void>(resolve => {
+  on(ACTIONS.CLIENT_UPDATE, (newClientIds: ID[]) => {
+    clientIds = newClientIds
+    resolve()
+  })
+})
+
+const clientMetricsWaiter = new Promise<void>(resolve => {
+  on(ACTIONS.CLIENT_METRICS_UPDATE, (newClientMetrics: { [id: string]: ConnectionMetrics }) => {
+    clientMetrics = newClientMetrics
+    resolve()
+  })
+})
+
+
+Promise.all([idResolutionWaiter, clientUpdateWaiter, clientMetricsWaiter]).then(() => {
+  act(ACTIONS.CONNECTED, myId)
 })
 
 export function addChannel(socket: Socket, lagInterval: number) {
   _socket = socket
   logger.debug('open socket')
-  act(ACTIONS.CONNECTED)
-  on(ACTIONS.CLIENT_UPDATE, (newClientIds: ID[]) => clientIds = newClientIds)
-  on(ACTIONS.CLIENT_METRICS_UPDATE, (newClientMetrics: { [id: string]: ConnectionMetrics }) => clientMetrics = newClientMetrics)
   startLagPingPong(lagInterval)
 
   socket.on("connect", () => {
@@ -30,10 +49,10 @@ export function addChannel(socket: Socket, lagInterval: number) {
   })
 
   socket.on("disconnect", (reason, details) => {
-    logger.debug(`${myId}:`, 'close socket', reason, details)
-    act(ACTIONS.CLOSE)
+    logger.debug(`${myId}`, 'disconnect', reason, details)
     socket.off()
     stopLagPingPong()
+    act(ACTIONS.DISCONNECTED)
   });
 
   socket.on("connect_error", (error) => {
@@ -43,8 +62,8 @@ export function addChannel(socket: Socket, lagInterval: number) {
 
   socket.on("message", (msg) => {
     logger.debug('message: ', msg)
-    const {action, attrs} = JSON.parse(msg)
-    act(action, attrs)
+    const {action, args} = JSON.parse(msg)
+    act(action, ...(args ?? []))
   })
 }
 
@@ -61,9 +80,9 @@ function stopLagPingPong() {
   lagPingTimeout = null
 }
 
-export function send(action: string, ...attrs: any[]) {
+export function send(action: string, ...args: any[]) {
   if(_socket.connected) {
-    _socket.send(JSON.stringify({action, attrs}))
+    _socket.send(JSON.stringify({action, args}))
   } else {
     logger.error(`${myId}: could not send to a disconnected socket`, action)
   }

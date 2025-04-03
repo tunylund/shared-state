@@ -1,40 +1,43 @@
 import { createServer } from 'http'
-import { start, stop, state, update, clients } from 'shared-state-server'
+import { ACTIONS, broadcast, metrics, send } from 'shared-state-server'
+import { start, stop, state, update, clients, on } from 'shared-state-server'
+import { listenToMessagesFromParentProcess, passActionsToParentProcess, sendToParentProcess } from './inter-process-messaging.js'
 
-function processSend(message: any) {
-  process.send && process.send(message)
-}
-
-function log(message: string) {
+function log(message: any) {
   console.log('integration-test-server:', message)
 }
 
-const stateArg = process.argv.find(arg => arg.startsWith('state=')) ?? ""
-const stateStr = stateArg.split('=')[1]
-const initialState = JSON.parse(stateStr)
-const server = createServer((req, res) => {})
-start(server, initialState, (id: any) => {}, { debugLog: true })
+const stateArgument = process.argv.find(arg => arg.startsWith('state=')) ?? ""
+const initialState = JSON.parse(stateArgument.split('=')[1])
+const server = createServer()
 
-process.on('disconnect', () => {
-  log('Received disconnect event from the main process, closing server')
+start(server, initialState, { debugLog: true });
+
+process.on('exit', () => {
+  log('Received disconnect event from the parent process, closing server')
   stop()
   server.close(() => process.exit(0))
+});
+
+listenToMessagesFromParentProcess({
+  listClients: () => clients(),
+  sendMessageToClient: ({ id, action, args }) => send(id, action, ...args),
+  broadcastToAllClients: ({ id, action, args }) => broadcast(action, ...args),
+  setState: (newState: any) => update(newState),
+  getState: () => state(),
+  getMetrics: (id: string) => metrics(id),
 })
 
-process.on('message', (msg: string) => {
-  log(msg)
+passActionsToParentProcess([
+  ACTIONS.CONNECTED,
+  ACTIONS.DISCONNECTED
+], on)
 
-  if (msg === 'listClients') processSend(clients())
-  else {
-    update(msg)
-    processSend(state())
-  }
-})
 
 server.listen(0, () => {
   const address = server.address()
   if (typeof address === 'object' && address !== null) {
     log(`listening on localhost:${address.port}`)
-    processSend(address.port)
+    sendToParentProcess({ method: 'started', params: address.port })
   }
 })
