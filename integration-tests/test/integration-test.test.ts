@@ -1,36 +1,37 @@
-import { ChildProcess, spawn, Serializable } from 'child_process'
-import { InterProcessMessage, sendToChildProcess, waitForSpecificAction } from './inter-process-messaging.ts'
+import { ChildProcess, Serializable } from 'child_process'
+import { spawnChildProcessWithAnApi, InterProcessMessage } from './inter-process-messaging.ts'
 
 interface State { state: string}
 
+export interface ServerProcessApi {
+  listClients: () => Promise<any[]>
+  send: (clientId: string, action: string, ...args: any[]) => Promise<any>
+  broadcast: (action: string, ...args: any[]) => Promise<any>
+  setState: (state: any) => Promise<any>
+  disconnect: () => Promise<void>
+  getState: () => Promise<any>
+  getMetrics: (clientId: string) => Promise<any>
+  waitForAction: (action: string, ...expectedArgs: any[]) => Promise<any>
+  [key: string]: (...args: any[]) => Promise<any>
+}
+
+export interface ClientProcessApi {
+  connect: () => Promise<string>
+  disconnect: () => Promise<void>
+  getId: () => Promise<string>
+  getState: () => Promise<State>
+  getMetrics: () => Promise<Serializable>
+  waitForAction: (action: string, ...expectedArgs: any[]) => Promise<any>
+  [key: string]: (...args: any[]) => Promise<any>
+}
+
 describe('integration-tests', () => {
   
-  let server: ChildProcess,
-      port: number,
-      client: ChildProcess
-
-  function buildClient(): Promise<ChildProcess> {
-    return new Promise((resolve, reject) => {
-      const client = spawn('tsx', ['./test/integration-test-client.ts', `port=${port}`], { stdio: ['ipc'] })
-      client.stdout?.pipe(process.stdout)
-      client.stderr?.pipe(process.stderr)
-      client.on('error', reject)
-      client.on('close', reject)
-      resolve(client)
-    })
-  }
-
-  function buildServer(): Promise<[ChildProcess, number]> {
-    const initialState: State = {state: 'initial'}
-    return new Promise((resolve, reject) => {
-      const server = spawn('tsx', ['./test/integration-test-server.ts', `state=${JSON.stringify(initialState)}`], { stdio: ['ipc'] })
-      server.stdout?.pipe(process.stdout)
-      server.stderr?.pipe(process.stderr)
-      server.once('message', ({ params }: InterProcessMessage) => resolve([server, params]))
-      server.on('error', reject)
-      server.on('close', reject)
-    })
-  }
+  let port: number,
+      serverProcess: ChildProcess,
+      clientProcess: ChildProcess,
+      server: ServerProcessApi,
+      client: ClientProcessApi
 
   function close(target: ChildProcess): Promise<any> {
     return new Promise(resolve => {
@@ -42,86 +43,108 @@ describe('integration-tests', () => {
   }
 
   beforeEach(async () => {
-    [server, port] = await buildServer()
-    client = await buildClient()
+    [serverProcess, server, port] = await spawnChildProcessWithAnApi<ServerProcessApi>('./test/integration-test-server.ts', `state=${JSON.stringify({state: 'initial'})}`);
+    [clientProcess, client] = await spawnChildProcessWithAnApi<ClientProcessApi>('./test/integration-test-client.ts', `port=${port}`);
   })
 
   afterEach(async () => {
-    await close(client)
-    await close(server)
+    await close(clientProcess)
+    await close(serverProcess)
   })
 
-  function pauseClientNetwork() {
-    client.kill('SIGSTOP')
+  function pauseClientProcess() {
+    clientProcess.kill('SIGSTOP')
   }
 
-  function unpauseClientNetwork() {
-    client.kill('SIGCONT')
+  function unpauseClientProcess() {
+    clientProcess.kill('SIGCONT')
   }
 
-  const listClients = () => sendToChildProcess<any[]>(server, { method: 'listClients' })
-  const changeState = (state: State) => sendToChildProcess<any>(server, { method: 'setState', params: state })
-  const getServerState = () => sendToChildProcess<State>(server, { method: 'getState' })
-  const sendActionToClient = (clientId: string, action: string, ...args: any[]) => sendToChildProcess<any>(server, { method: 'sendMessageToClient', params: { id: clientId, action, args }})
-  const broadcastToAllClients = (action: string, ...args: any[]) => sendToChildProcess<any>(server, { method: 'broadcastToAllClients', params: { action, args }})
-  const getServerMetrics = (clientId: string) => sendToChildProcess(server, { method: 'getMetrics', params: clientId })
-
-  const connect = (target = client) => sendToChildProcess<string>(target, { method: 'connect' })
-  const getClientId = () => sendToChildProcess<string>(client, { method: 'getId' })
-  const getClientState = () => sendToChildProcess<State>(client, { method: 'getState' })
-  const getLagMetrics = () => sendToChildProcess<Serializable>(client, { method: 'getStatistics' })
   const wait = () => new Promise(resolve => setTimeout(resolve, 300))
   
-  describe('server-side-api', () => {
+  describe('connected and disconnected events', () => {
+
     it('should trigger an action when a client opens connection ', async () => {
-      const waiter = waitForSpecificAction(server, 'connected')
-      const id = await connect()
-      const args = await waiter
-      expect(args[0]).toBe(id)
+      const expectedEvents = [
+        server.waitForAction('connected'),
+        client.waitForAction('connected')
+      ]
+      const id = await client.connect()
+      expect(await Promise.all(expectedEvents)).toMatchObject([[id], [id]])
+    })
+
+    it('should provide an id and initial state when a client opens a connection', async () => {
+      await client.connect()
+      expect(await client.getId()).toBeDefined()
+      expect(await client.getState()).toMatchObject({state: 'initial'})
+    })
+
+    it('should maintain knowledge of which clients have joined', async () => {
+      await client.connect()
+      expect(await server.listClients()).toHaveLength(1)
+      await client.disconnect()
+      expect(await server.listClients()).toHaveLength(0)
     })
   
     it('should trigger an action when a client closes connection', async () => {
-      const id = await connect()
-      const waiter = waitForSpecificAction(server, 'disconnected', id)
-      close(client)
-      await waiter
+      const id = await client.connect()
+      const expectedEvents = [
+        server.waitForAction('disconnected', id),
+        client.waitForAction('disconnected')
+      ]
+      await client.disconnect()
+      await Promise.all(expectedEvents)
     })
 
-    it('should maintain knowledge of which clients are joined', async () => {
-      await connect()
-      expect(await listClients()).toHaveLength(1)
-      await close(client)
-      expect(await listClients()).toHaveLength(0)
+    it('should trigger an action when the server closes the connection', async () => {
+      const id = await client.connect()
+      const expectedEvents = [
+        server.waitForAction('disconnected', id),
+        client.waitForAction('disconnected')
+      ]
+      await server.disconnect()
+      await Promise.all(expectedEvents)
     })
+  })
+
+  describe("state management", () => {
+    beforeEach(() => client.connect())
 
     it('should be able to send messages to clients', async () => {
-      const id = await connect()
       await Promise.all([
-        waitForSpecificAction(client, 'custom-action', 1),
-        sendActionToClient(id, 'custom-action', 1)
+        client.waitForAction('custom-action', 1),
+        server.send(await client.getId(), 'custom-action', 1)
       ])
     })
 
     it('should be able to broadcast messages to all clients', async () => {
-      await connect()
-      const otherClient = await buildClient()
-      await connect(otherClient)
+      const [otherClientProcess, otherClient] = await spawnChildProcessWithAnApi<ClientProcessApi>('./test/integration-test-client.ts', `port=${port}`)
+      await otherClient.connect()
       await Promise.all([
-        broadcastToAllClients('custom-action', 1),
-        waitForSpecificAction(client, 'custom-action', 1),
-        waitForSpecificAction(otherClient, 'custom-action', 1)
+        server.broadcast('custom-action', 1),
+        client.waitForAction('custom-action', 1),
+        otherClient.waitForAction('custom-action', 1)
       ])
-      await close(otherClient)
+      await close(otherClientProcess)
     })
 
-    it('should be able to update the state', async () => {
-      await changeState({ state: 'new' })
-      expect(await getServerState()).toEqual({ state: 'new' })
+    it('should be update the state and sync the clients', async () => {
+      await server.setState({ state: 'new' })
+      expect(await server.getState()).toEqual({ state: 'new' })
+      expect(await client.getState()).toMatchObject({state: 'new'})
     })
 
-    it('should maintain a list of client performance characteristics', async () => {
-      await connect(client)
-      const metrics = await getServerMetrics(await getClientId())
+    it('should maintain a list on the server of each clients performance characteristics', async () => {
+      const metrics = await server.getMetrics(await client.getId())
+      expect(metrics).toMatchObject({
+        "dataTransferRate": 0,
+        "lag": expect.anything(),
+      })
+    })
+
+    it('should provide performance characteristics to each client', async () => {
+      await wait()
+      const metrics = await client.getMetrics()
       expect(metrics).toMatchObject({
         "dataTransferRate": 0,
         "lag": expect.anything(),
@@ -129,57 +152,18 @@ describe('integration-tests', () => {
     })
   })
 
-  describe('client-side-api', () => {
-    it('should receive an id upon an established connection', async () => {
-      await connect()
-      expect(await getClientId()).toBeDefined()
+  describe('connectivity issues', () => {
+    it('should keep in sync even thought child process is paused for a moment', async () => {
+      await client.connect()
+      pauseClientProcess()
+      await server.setState({state: 'new'})
+      await wait()
+      unpauseClientProcess()
+      expect(await client.getState()).toMatchObject({state: 'new'})
     })
 
-    it('should receive state upon an established connection', async () => {
-      await connect()
-      expect(await getClientState()).toMatchObject({state: 'initial'})
-    })
-  
-    it('should trigger an action when a connection is established', async () => {
-      const waiter = waitForSpecificAction(client, 'connected')
-      connect()
-      await waiter
-    })
-
-    it('should trigger an action when a connection is closed', async () => {
-      await connect()
-      const waiter = waitForSpecificAction(client, 'disconnected')
-      await close(client)
-      await waiter
-    })
-
-    it('should receive lag statistics periodically of all the connected clients', async () => {
-      await connect()
-      const metrics = await getLagMetrics()
-      expect(metrics).toMatchObject({
-        "dataTransferRate": 0,
-        "lag": expect.anything(),
-      })
-    })
-
-    it('should receive state updates', async () => {
-      await connect()
-      await changeState({state: 'new'})
-      expect(await getClientState()).toMatchObject({state: 'new'})
-    })
+    // it('server stops abruptly', () => {})
   })
-
-  // describe('connectivity issues', () => {
-  //   it('should keep in sync even thought child process is paused for a moment', async () => {
-  //     pauseClientNetwork()
-  //     await changeState({state: 'new'})
-  //     await wait()
-  //     unpauseClientNetwork()
-  //     await waitUntilClientStateMatches({state: 'new'})
-  //   })
-
-  //   it('server stops abruptly', () => {})
-  // })
 })
 export { InterProcessMessage }
 

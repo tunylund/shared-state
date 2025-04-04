@@ -49,7 +49,7 @@ export function addChannel(socket: Socket, lagInterval: number) {
   })
 
   socket.on("disconnect", (reason, details) => {
-    logger.debug(`${myId}`, 'disconnect', reason, details)
+    logger.debug(`${myId}`, 'disconnect', reason)
     socket.off()
     stopLagPingPong()
     act(ACTIONS.DISCONNECTED)

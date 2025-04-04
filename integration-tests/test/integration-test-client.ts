@@ -1,6 +1,7 @@
 import io from 'socket.io-client'
-import { connect, on, ACTIONS, state, metrics } from 'shared-state-client'
-import { listenToMessagesFromParentProcess, passActionsToParentProcess } from './inter-process-messaging.js'
+import { connect, on, ACTIONS, state, metrics, off } from 'shared-state-client'
+import { provideChildProcessApi } from './inter-process-messaging.js'
+import { ClientProcessApi } from './integration-test.test.ts'
 
 (global as any).io = io
 
@@ -18,7 +19,8 @@ process.on('exit', () => {
   disconnect()
 })
 
-listenToMessagesFromParentProcess({
+const api: ClientProcessApi = {
+
   connect: () => {
     return new Promise(resolve => {
       on(ACTIONS.INIT, (id: string, initialState: any) =>  {
@@ -32,13 +34,29 @@ listenToMessagesFromParentProcess({
       })
     })
   },
-  getState: () => state(),
-  getStatistics: () => metrics(myId),
-  getId: () => myId,
-})
 
-passActionsToParentProcess([
-  ACTIONS.CONNECTED,
-  ACTIONS.DISCONNECTED,
-  'custom-action',
-], on)
+  disconnect: async () => {
+    disconnect()
+  },
+
+  getState: () => state(),
+
+  getMetrics: async () => metrics(myId),
+
+  getId: async () => myId,
+
+  waitForAction: (action: string, ...expectedArgs: any[]) => {
+    return new Promise((resolve) => {
+      const listener = (...args: any[]) => {
+        if (expectedArgs.every(expectedArgument => args.includes(expectedArgument))) {
+          off(action, listener)
+          resolve(args)
+        }
+      }
+      on(action, listener)
+    })
+  }
+}
+provideChildProcessApi(api)
+
+process.send && process.send('started')

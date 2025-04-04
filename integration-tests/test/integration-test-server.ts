@@ -1,7 +1,8 @@
 import { createServer } from 'http'
-import { ACTIONS, broadcast, metrics, send } from 'shared-state-server'
+import { broadcast, metrics, off, send } from 'shared-state-server'
 import { start, stop, state, update, clients, on } from 'shared-state-server'
-import { listenToMessagesFromParentProcess, passActionsToParentProcess, sendToParentProcess } from './inter-process-messaging.js'
+import { provideChildProcessApi } from './inter-process-messaging.js'
+import { ServerProcessApi } from './integration-test.test.ts'
 
 function log(message: any) {
   console.log('integration-test-server:', message)
@@ -19,25 +20,42 @@ process.on('exit', () => {
   server.close(() => process.exit(0))
 });
 
-listenToMessagesFromParentProcess({
-  listClients: () => clients(),
-  sendMessageToClient: ({ id, action, args }) => send(id, action, ...args),
-  broadcastToAllClients: ({ id, action, args }) => broadcast(action, ...args),
-  setState: (newState: any) => update(newState),
+const api: ServerProcessApi = {
+
+  listClients: async () => clients(),
+
+  send: async (id: string, action: string, ...args: any[]) => send(id, action, ...args),
+
+  broadcast: async (action: string, ...args: any[]) => broadcast(action, ...args),
+
+  setState: async (newState: any) => update(newState),
+
   getState: () => state(),
-  getMetrics: (id: string) => metrics(id),
-})
 
-passActionsToParentProcess([
-  ACTIONS.CONNECTED,
-  ACTIONS.DISCONNECTED
-], on)
+  getMetrics: async (id: string) => metrics(id),
 
+  waitForAction: (action: string, ...expectedArgs: any[]) => {
+    return new Promise((resolve) => {
+      const listener = (...args: any[]) => {
+        if (expectedArgs.every(expectedArgument => args.includes(expectedArgument))) {
+          off(action, listener)
+          resolve(args)
+        }
+      }
+      on(action, listener)
+    })
+  },
+
+  disconnect: async () => {
+    stop()
+  }
+}
+provideChildProcessApi(api)
 
 server.listen(0, () => {
   const address = server.address()
   if (typeof address === 'object' && address !== null) {
     log(`listening on localhost:${address.port}`)
-    sendToParentProcess({ method: 'started', params: address.port })
+    process.send && process.send(address.port)
   }
 })

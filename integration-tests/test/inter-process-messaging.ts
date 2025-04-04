@@ -1,8 +1,33 @@
-import { ChildProcess } from "child_process"
+import { ChildProcess, spawn } from "child_process"
 
 export interface InterProcessMessage { method: string, params?: any }
 
-export function sendToChildProcess<T>(target: ChildProcess, message: InterProcessMessage): Promise<T> {
+export function spawnChildProcessWithAnApi<T>(script: string, args: string): Promise<[ChildProcess, T, any]> {
+  return new Promise((resolve, reject) => {
+    const childProcess = spawn('tsx', [script, args], { stdio: ['ipc'] })
+    childProcess.stdout?.pipe(process.stdout)
+    childProcess.stderr?.pipe(process.stderr)
+    childProcess.on('error', reject)
+    childProcess.on('close', reject)
+
+    childProcess.once('message', (params: any) => {
+      const proxy = buildChildProcessProxy<T>(childProcess)
+      resolve([childProcess, proxy, params])
+    })
+  })
+}
+
+function buildChildProcessProxy<T>(target: ChildProcess): T {
+  return new Proxy({}, {
+    get(_, method: string) {
+      return function (...args: any[]) {
+        return sendToChildProcess(target, { method, params: args })
+      }
+    }
+  }) as T
+}
+
+function sendToChildProcess<T>(target: ChildProcess, message: InterProcessMessage): Promise<T> {
   return new Promise(resolve => {
     const resolveResponse = (messageFromChildProcess: InterProcessMessage) => {
       if (messageFromChildProcess.method === message.method) {
@@ -15,31 +40,10 @@ export function sendToChildProcess<T>(target: ChildProcess, message: InterProces
   })
 }
 
-export function waitForSpecificAction(target: ChildProcess, expectedAction: string, ...expectedArguments: any[]): Promise<any> {
-  return new Promise(resolve => {
-    const resolveResponse = async ({method, params}: InterProcessMessage) => {
-      if (method == 'actionTriggered') {
-        if (params && params.action === expectedAction) {
-          if (expectedArguments.every(expectedArgument => params.args?.includes(expectedArgument))) {
-            target.off('message', resolveResponse)
-            resolve(params.args)
-          }
-        }
-      }
-    }
-    target.on('message', resolveResponse)
-  })
-}
-
-export function sendToParentProcess(message: InterProcessMessage) {
-  if (process.send) process.send(message)
-  else console.log(message)
-}
-
-export function listenToMessagesFromParentProcess(listeners: Record<string, (params?: any) => any>) {
+export function provideChildProcessApi(api: {[key: string]: (...params: any) => Promise<any>}) {
   process.on('message', async (msg: InterProcessMessage) => {
-    if (msg.method in listeners) {
-      const result = await listeners[msg.method](msg.params)
+    if (msg.method in api) {
+      const result = await api[msg.method](...msg.params)
       sendToParentProcess({ method: msg.method, params: result })
     } else {
       throw new Error('Unrecognized method call from parent process: ' + msg.method)
@@ -47,10 +51,7 @@ export function listenToMessagesFromParentProcess(listeners: Record<string, (par
   })
 }
 
-export function passActionsToParentProcess(actions: string[], on: (action: string, ...args: any[]) => void) {
-  actions.map((action) => {
-    on(action, (...args: any[]) => {
-      sendToParentProcess({ method: 'actionTriggered', params: { action, args } })
-    })
-  })
+function sendToParentProcess(message: InterProcessMessage) {
+  if (process.send) process.send(message)
+  else console.log(message)
 }
