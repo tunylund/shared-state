@@ -23,14 +23,17 @@ const api: ClientProcessApi = {
 
   connect: () => {
     return new Promise(resolve => {
-      on(ACTIONS.INIT, (id: string, initialState: any) =>  {
+      on(ACTIONS.CONNECTED, (id: string) =>  {
         myId = id
         resolve(myId)
       })
   
-      log(`connecting to 'http://localhost:${port}'`)
-      disconnect = connect(`http://localhost:${port}`, {
-        debugLog: true
+      log(`connecting to 'http://127.0.0.1:${port}'`)
+      disconnect = connect(`http://127.0.0.1:${port}`, {
+        debugLog: true,
+        socketIOOptions: {
+          timeout: 100
+        }
       })
     })
   },

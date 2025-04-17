@@ -46,16 +46,20 @@ const api: ServerProcessApi = {
     })
   },
 
+  connect: async () => {
+    start(server, initialState, { debugLog: true, socketIOOptions: { pingInterval: 100, pingTimeout: 100 } });
+  },
+
   disconnect: async () => {
     stop()
   }
 }
 provideChildProcessApi(api)
 
-server.listen(0, () => {
+server.listen(14000, () => {
   const address = server.address()
   if (typeof address === 'object' && address !== null) {
-    log(`listening on localhost:${address.port}`)
+    log(`listening on ${address.address}:${address.port}`)
     process.send && process.send(address.port)
   }
 })

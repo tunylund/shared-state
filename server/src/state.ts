@@ -1,7 +1,7 @@
 import { ACTIONS } from "./actions.js"
 import deepDiff from 'deep-diff'
 import rfdc from 'rfdc'
-import { broadcast, send } from "./clients.js"
+import { broadcast } from "./clients.js"
 
 const deepClone = rfdc()
 

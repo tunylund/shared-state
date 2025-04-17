@@ -2,62 +2,88 @@ import logger from './logger.js'
 import { act, ACTIONS, on, Action } from "./actions.js"
 import { state } from "./state.js"
 import { Socket } from "socket.io"
-import { v4 as uuid } from 'uuid'
-import { collectTransferRate, deleteMetrics, updateLag } from './metrics.js'
+import { collectTransferRate, deleteMetrics } from './metrics.js'
+import { negotiateClientId } from './idhandshake.js'
 
 
 export type ID = string
 
 const clientSockets = new Map<ID, Socket>()
+const clientsOnHold = new Set<ID>()
 
 export function clients() {
   return Array.from(clientSockets.keys())
 }
 
-export function createClient(socket: Socket): ID {
-  const id = uuid()
-
-  addClientSocket(id, socket)
-
-  socket.on("disconnect", (reason, details) => {
-    logger.debug(id, 'disconnect', reason, details)
-    destroyClient(id)
-  })
-  socket.on("message", (msg: string) => {
-    const {action, args} = JSON.parse(msg.toString())
-    logger.debug(id, 'message', action)
-    act(action, id, ...(args || []))
-  })
-
+export async function connectClient(socket: Socket): Promise<ID> {
+  const id = await negotiateClientId(socket)
+  releaseClientFromHold(id)
+  setupClientSocket(id, socket)
+  send(id, ACTIONS.INIT, id, state())
+  broadcastClientsUpdate()
+  act(ACTIONS.CONNECTED, id)
   return id
+}
+
+export function isClientOnHold(id: ID) {
+  return clientsOnHold.has(id)
+}
+
+function holdClient(id: ID) {
+  const socket = clientSockets.get(id)
+  if (socket) clientsOnHold.add(id)
+}
+
+function releaseClientFromHold(id: ID) {
+  clientsOnHold.delete(id)
 }
 
 export function destroyClient(id: ID) {
   act(ACTIONS.DISCONNECTED, id)
-  clientSockets.get(id)?.disconnect(true)
-  clientSockets.get(id)?.removeAllListeners()
-  clientSockets.delete(id)
+  destroySocket(id)
   deleteMetrics(id)
   broadcastClientsUpdate()
 }
 
-function addClientSocket(id: ID, socket: Socket) {
+function destroySocket(id: ID) {
+  clientSockets.get(id)?.disconnect(true)
+  clientSockets.get(id)?.removeAllListeners()
+  clientSockets.delete(id)
+}
+
+function setupClientSocket(id: ID, socket: Socket) {
+  socket.on("disconnect", (reason) => {
+    logger.debug('disconnect', id, reason)
+
+    if (['server namespace disconnect',
+         'client namespace disconnect',
+         'server shutting down',
+         'forced server close'].includes(reason)) {
+      destroyClient(id)
+    } else {
+      holdClient(id)
+    }
+  })
+
+  socket.on("message", (msg: string) => {
+    const {action, args} = JSON.parse(msg.toString())
+    logger.debug('message', id, action)
+    act(action, id, ...(args || []))
+  })
+
   clientSockets.set(id, socket)
-  send(id, ACTIONS.INIT, id, state())
-  broadcastClientsUpdate()
-  act(ACTIONS.CONNECTED, id)
 }
 
 export function send(id: ID, action: Action, ...args: any[]) {
-  const channel = clientSockets.get(id)
-  if(channel && channel.connected) {
+  const socket = clientSockets.get(id)
+  if(socket && socket.connected) {
     const msg = JSON.stringify({action, args})
     collectTransferRate(id, msg)
-    logger.debug(id, 'send', action)
-    try { channel.emit("message", msg) }
+    logger.debug('send', id, action)
+    try { socket.emit("message", msg) }
     catch (err) { logger.error(id, `could not send to a '${id}' channel`, action) }
   } else {
-    logger.debug(id, `could not send to a '${id}' channel`, action)
+    logger.debug(`could not send to a disconnected channel`, action, id)
   }
 }
   

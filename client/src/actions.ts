@@ -1,4 +1,3 @@
-
 const actions = new Map<Action, Set<Function>>()
 
 export type Action = string
@@ -13,6 +12,8 @@ export enum ACTIONS {
   STATE_UPDATE = 'state-update',
   CLIENT_UPDATE = 'client-update',
   CLIENT_METRICS_UPDATE = 'client-metrics-update',
+  SUGGEST_ID = 'suggest-id',
+  ACCEPT_ID = 'accept-id',
 }
 
 export function act(action: Action, ...args: any[]) {

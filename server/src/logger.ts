@@ -1,9 +1,9 @@
 let debugLog = true
 
 const logger = {
-  log: console.log,
-  error: console.error,
-  debug: (...args: any[]) => debugLog ? console.debug(...args) : ''
+  log: (...args: any[]) => console.log("shared-state-server", ...args),
+  error: (...args: any[]) => console.error("shared-state-server", ...args),
+  debug: (...args: any[]) => debugLog ? console.debug("shared-state-server", ...args) : ''
 }
 
 export function setLogLevel(logDebugMessages: boolean) {

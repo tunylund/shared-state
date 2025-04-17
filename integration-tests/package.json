@@ -29,6 +29,7 @@
     "shared-state-client": "file:../client",
     "shared-state-server": "file:../server",
     "socket.io-client": "^4.5.1",
+    "toxiproxy-node-client": "^4.0.0",
     "ts-jest": "^29.2.6",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"
