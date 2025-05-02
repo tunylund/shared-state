@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-echo "Building Client 🍃"
+echo "Building the client-library 🍃"
 
 rm -rf dist
 ./node_modules/.bin/tsc
@@ -20,3 +20,11 @@ rm dist/*.bak
 
 ./node_modules/.bin/rollup -c
 ls -lah dist/bundle*
+
+# assert bundle.mjs does not include socket io library code
+if grep -q "socket.io-client" dist/bundle.mjs; then
+  echo "\nError: bundle.mjs includes socket.io-client code. Please modify the code or rollup configuration to make sure the bundle does not include external library code."
+  exit 1
+fi
+
+echo "Finished building the client-library 🍃"

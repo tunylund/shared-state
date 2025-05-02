@@ -1,5 +1,7 @@
-import { ACTIONS } from "./actions.js"
+import { EVENTS, on } from "./events.js"
 import { broadcast, ID } from "./clients.js"
+
+on(EVENTS.PING, (id: string, clientTime: number) => updateLag(id, Date.now() - clientTime))
 
 export interface ConnectionMetrics {
   lag: number,
@@ -39,7 +41,7 @@ function updateTransferRate(id: ID, collector: TransferRateCollector) {
   broadcastClientsUpdate()
 }
 
-export function updateLag(id: ID, lag: number) {
+function updateLag(id: ID, lag: number) {
   const metrics = ensureMetricsExistForClient(id)
   metrics.lag = lag
   broadcastClientsUpdate()
@@ -54,5 +56,5 @@ function ensureMetricsExistForClient(id: ID): ConnectionMetrics {
 }
 
 function broadcastClientsUpdate() {
-  broadcast(ACTIONS.CLIENT_METRICS_UPDATE, metrics())
+  broadcast(EVENTS.CLIENT_METRICS_UPDATE, metrics())
 }

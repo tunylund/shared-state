@@ -1,6 +1,6 @@
 import io from 'socket.io-client'
-import { connect, on, ACTIONS, state, metrics, off } from 'shared-state-client'
-import { provideChildProcessApi } from './inter-process-messaging.js'
+import { connect, on, EVENTS, state, metrics, off } from 'shared-state-client'
+import { registerChildProcessApi } from './inter-process-messaging.js'
 import { ClientProcessApi } from './integration-test.test.ts'
 
 (global as any).io = io
@@ -19,13 +19,16 @@ process.on('exit', () => {
   disconnect()
 })
 
-const api: ClientProcessApi = {
+on(EVENTS.CONNECTED, (id: string) =>  {
+  myId = id
+})
+
+registerChildProcessApi<ClientProcessApi>({
 
   connect: () => {
     return new Promise(resolve => {
-      on(ACTIONS.CONNECTED, (id: string) =>  {
-        myId = id
-        resolve(myId)
+      on(EVENTS.CONNECTED, (id: string) =>  {
+        resolve(id)
       })
   
       log(`connecting to 'http://127.0.0.1:${port}'`)
@@ -59,7 +62,6 @@ const api: ClientProcessApi = {
       on(action, listener)
     })
   }
-}
-provideChildProcessApi(api)
+})
 
 process.send && process.send('started')

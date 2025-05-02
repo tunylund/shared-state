@@ -40,7 +40,7 @@ function sendToChildProcess<T>(target: ChildProcess, message: InterProcessMessag
   })
 }
 
-export function provideChildProcessApi(api: {[key: string]: (...params: any) => Promise<any>}) {
+export function registerChildProcessApi<T extends Record<string, (...params: any) => Promise<any>>>(api: T) {
   process.on('message', async (msg: InterProcessMessage) => {
     if (msg.method in api) {
       const result = await api[msg.method](...msg.params)

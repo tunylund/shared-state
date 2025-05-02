@@ -1,5 +1,5 @@
 import logger from './logger.js'
-import { act, ACTIONS, on, Action } from "./actions.js"
+import { trigger, EVENTS } from "./events.js"
 import { state } from "./state.js"
 import { Socket } from "socket.io"
 import { collectTransferRate, deleteMetrics } from './metrics.js'
@@ -19,9 +19,9 @@ export async function connectClient(socket: Socket): Promise<ID> {
   const id = await negotiateClientId(socket)
   releaseClientFromHold(id)
   setupClientSocket(id, socket)
-  send(id, ACTIONS.INIT, id, state())
+  send(id, EVENTS.INIT, id, state())
   broadcastClientsUpdate()
-  act(ACTIONS.CONNECTED, id)
+  trigger(EVENTS.CONNECTED, id)
   return id
 }
 
@@ -39,7 +39,7 @@ function releaseClientFromHold(id: ID) {
 }
 
 export function destroyClient(id: ID) {
-  act(ACTIONS.DISCONNECTED, id)
+  trigger(EVENTS.DISCONNECTED, id)
   destroySocket(id)
   deleteMetrics(id)
   broadcastClientsUpdate()
@@ -68,13 +68,13 @@ function setupClientSocket(id: ID, socket: Socket) {
   socket.on("message", (msg: string) => {
     const {action, args} = JSON.parse(msg.toString())
     logger.debug('message', id, action)
-    act(action, id, ...(args || []))
+    trigger(action, id, ...(args || []))
   })
 
   clientSockets.set(id, socket)
 }
 
-export function send(id: ID, action: Action, ...args: any[]) {
+export function send(id: ID, action: string, ...args: any[]) {
   const socket = clientSockets.get(id)
   if(socket && socket.connected) {
     const msg = JSON.stringify({action, args})
@@ -87,20 +87,20 @@ export function send(id: ID, action: Action, ...args: any[]) {
   }
 }
   
-export function broadcast(action: Action, ...args: any[]) {
+export function broadcast(action: string, ...args: any[]) {
   for (let id of clientSockets.keys()) {
     send(id, action, ...args)
   }
 }
 
-export function broadcastToOthers(notThisId: ID, action: Action, ...args: any[]) {
+export function broadcastToOthers(notThisId: ID, action: string, ...args: any[]) {
   for (let id of clientSockets.keys()) {
     if (id !== notThisId) send(id, action, ...args)
   }
 }
 
 function broadcastClientsUpdate() {
-  broadcast(ACTIONS.CLIENT_UPDATE, {
+  broadcast(EVENTS.CLIENT_UPDATE, {
     clients: clients(),
   })
 }

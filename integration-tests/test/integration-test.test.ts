@@ -46,23 +46,26 @@ describe('integration-tests', () => {
     })
   }
 
-  async function runToxiproxyServer(): Promise<void> {
-    return new Promise(async (resolve, reject) => {
-      toxiproxyServerProcess = spawn("toxiproxy-server", ["-port", "8474",  "-host", "localhost"], { stdio: ['ipc'], env: { ...process.env, LOG_LEVEL: 'debug' } })
-      toxiproxyServerProcess.stdout?.pipe(process.stdout)
-      toxiproxyServerProcess.stderr?.pipe(process.stderr)
-      
-      await wait(100)
+  async function startToxiproxyServer(): Promise<void> {
+    toxiproxyServerProcess = spawn("toxiproxy-server", ["-port", "8474",  "-host", "localhost"], { stdio: ['ipc'], env: { ...process.env, LOG_LEVEL: 'debug' } })
+    toxiproxyServerProcess.stdout?.pipe(process.stdout)
+    toxiproxyServerProcess.stderr?.pipe(process.stderr)
+    
+    toxiproxyClient = new Toxiproxy("http://localhost:8474");
 
-      toxiproxyClient = new Toxiproxy("http://localhost:8474");
-      
-      proxy = await toxiproxyClient.createProxy({
-        listen: "127.0.0.1:13999",
-        name: "toxic-proxy",
-        upstream: `127.0.0.1:14000`
-      })
-
-      resolve()
+    while (true) {
+      try {
+        await toxiproxyClient.getVersion()
+        break
+      } catch (e) {
+        await wait(50)
+      }
+    }
+    
+    proxy = await toxiproxyClient.createProxy({
+      listen: "127.0.0.1:13999",
+      name: "toxic-proxy",
+      upstream: `127.0.0.1:14000`
     })
   }
 
@@ -70,7 +73,7 @@ describe('integration-tests', () => {
     return close(toxiproxyServerProcess)
   }
 
-  beforeAll(runToxiproxyServer)
+  beforeAll(startToxiproxyServer)
   afterAll(stopToxiproxyServer)
 
   beforeEach(async () => {
@@ -83,14 +86,6 @@ describe('integration-tests', () => {
     await close(serverProcess)
     await toxiproxyClient.reset()
   })
-
-  function pauseProcess(process: ChildProcess) {
-    process.kill('SIGSTOP')
-  }
-
-  function unpauseProcess(process: ChildProcess) {
-    process.kill('SIGCONT')
-  }
 
   const wait = (timeMs = 300) => new Promise(resolve => setTimeout(resolve, timeMs))
   
@@ -185,10 +180,10 @@ describe('integration-tests', () => {
   })
 
   describe('connectivity issues', () => {
+    beforeEach(() => client.connect())
 
-    it('should reconnect the client, resync the state and retain the same client id if the client gets disconnected because of a network issue', async () => {
-      await client.connect()
-      const firstClientId = await client.getId()
+    it('should reconnect the client and regain the same client id if the client gets disconnected because of a network issue', async () => {
+      const originalClientId = await client.getId()
 
       const networkPartitionToxic = <ICreateToxicBody<Timeout>>{
         name: 'network-partition',
@@ -198,29 +193,55 @@ describe('integration-tests', () => {
         attributes: { timeout: 1000 }
       }
       await proxy.addToxic(networkPartitionToxic)
+      await wait(1000)
+      await (await proxy.getToxic("network-partition")).remove()
+      await client.waitForAction('init')
 
+      expect(await client.getId()).toEqual(originalClientId)
+    })
+
+    it('should reconnect the client and resync the state if the client gets disconnected because of a network issue', async () => {
+      const networkPartitionToxic = <ICreateToxicBody<Timeout>>{
+        name: 'network-partition',
+        stream: 'downstream',
+        type: 'timeout',
+        toxicity: 1,
+        attributes: { timeout: 1000 }
+      }
+      await proxy.addToxic(networkPartitionToxic)
       await server.setState({state: 'state-1'})
       await server.setState({state: 'state-2'})
       await server.setState({state: 'state-3'})
-
-      expect(await client.getId()).toEqual(firstClientId)
       expect(await client.getState()).toMatchObject({state: 'initial'})
-
       await (await proxy.getToxic("network-partition")).remove()
-      
-      await wait(1000)
+      await client.waitForAction('init')
 
-      expect(await client.getId()).toEqual(firstClientId)
       expect(await client.getState()).toMatchObject({state: 'state-3'})
-
-      await server.setState({state: 'state-4'})
-      await wait(100)
-      expect(await client.getState()).toMatchObject({state: 'state-4'})
     })
 
-    it('should eventually recover state synchronization when packets are lost because websockets are built over tcp which handles network packet losses ', async () => {
-      await client.connect()
+    it('should provide a new id to the client if the previous client id is no longer available. This could happen if the server restarts and the state is lost', async () => {
+      const originalClientId = await client.getId()
 
+      const networkPartitionToxic = <ICreateToxicBody<Timeout>>{
+        name: 'network-partition',
+        stream: 'downstream',
+        type: 'timeout',
+        toxicity: 1,
+        attributes: { timeout: 1000 }
+      }
+      await proxy.addToxic(networkPartitionToxic)
+      await close(serverProcess);
+      await stopToxiproxyServer();
+      [serverProcess, server, port] = await spawnChildProcessWithAnApi<ServerProcessApi>('./test/integration-test-server.ts', `state=${JSON.stringify({state: 'initial'})}`);
+      await startToxiproxyServer()
+      await client.waitForAction('connected')
+
+      expect(await client.getId()).not.toEqual(originalClientId)
+    })
+
+    // Websockets are built over tcp which handles network packet losses, this is basically testing tcp, but the test might be useful in the future if
+    // the implementation switches to udp over webtransports
+    it('should eventually recover state synchronization when packets are lost', async () => {
       const packetLossToxic = <ICreateToxicBody<Bandwidth>>{
         name: 'packet-loss',
         stream: 'downstream',
@@ -239,32 +260,14 @@ describe('integration-tests', () => {
       expect(await client.getState()).toMatchObject({ state: 'state-4' })
     })
 
-    // it('should provide a new client id and drop the old client id when the client is manually disconnected by the client', async () => {
-    //   await client.connect()
-    //   const firstClientId = await client.getId()
-    //   await client.disconnect()
-    //   await client.connect()
-    //   expect(await client.getId()).not.toEqual(firstClientId)
-    //   expect(await server.listClients()).not.toContain(firstClientId)
-    // })
-
     // it('should not be able to steal a session', async () => {
     // })
-    // it('should survive id race conditions', async () => {
+    // it('should survive id negotiation race conditions', async () => {
     // })
     // it('should drop clients after a timeout', async () => {
     // })
-
     // it('should reconnect the client and resync the state if the server gets disconnected', async () => {
-    //   await client.connect()
-    //   await server.disconnect()
-    //   await server.connect()
-    //   await server.setState({state: 'new'})
-    //   await client.connect()
-    //   await wait()
-    //   expect(await client.getState()).toMatchObject({state: 'new'})
     // })
-    // it('server stops abruptly', () => {})
+
   })
 })
-export { InterProcessMessage }

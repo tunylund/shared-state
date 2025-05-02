@@ -1,7 +1,7 @@
 import { createServer } from 'http'
 import { broadcast, metrics, off, send } from 'shared-state-server'
 import { start, stop, state, update, clients, on } from 'shared-state-server'
-import { provideChildProcessApi } from './inter-process-messaging.js'
+import { registerChildProcessApi } from './inter-process-messaging.js'
 import { ServerProcessApi } from './integration-test.test.ts'
 
 function log(message: any) {
@@ -20,7 +20,7 @@ process.on('exit', () => {
   server.close(() => process.exit(0))
 });
 
-const api: ServerProcessApi = {
+registerChildProcessApi<ServerProcessApi>({
 
   listClients: async () => clients(),
 
@@ -46,15 +46,10 @@ const api: ServerProcessApi = {
     })
   },
 
-  connect: async () => {
-    start(server, initialState, { debugLog: true, socketIOOptions: { pingInterval: 100, pingTimeout: 100 } });
-  },
-
   disconnect: async () => {
     stop()
   }
-}
-provideChildProcessApi(api)
+})
 
 server.listen(14000, () => {
   const address = server.address()

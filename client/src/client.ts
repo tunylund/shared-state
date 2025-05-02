@@ -1,15 +1,16 @@
 import logger, { setLogLevel } from './logger.js'
-import { on, ACTIONS, act } from './actions.js'
-import { io, Socket } from 'socket.io-client'
+import { on, EVENTS, trigger, once } from './events.js'
+import { startLagPingPong, stopLagPingPong } from './metrics.js'
+// import { io, ManagerOptions, Socket, SocketOptions } from 'socket.io-client'
+// type SocketIOOptions = Partial<ManagerOptions & SocketOptions>
+
+declare const io: any
+type Socket = any
+type SocketIOOptions = any
 
 export type ID = string
-export interface ConnectionMetrics {
-  lag: number,
-  dataTransferRate: number
-}
 
 let clientIds: ID[] = []
-let clientMetrics: { [id: ID]: ConnectionMetrics } = {}
 let myId: ID
 let _socket: Socket
 
@@ -18,7 +19,7 @@ interface Config {
   debugLog: boolean
   fastButUnreliable: boolean
   path: string,
-  socketIOOptions: any
+  socketIOOptions: SocketIOOptions
 }
 
 const defaultConfig: Config = {
@@ -49,99 +50,76 @@ export function connect(url: string, config?: Partial<Config>): () => void {
   socket.io.on('reconnect', () => {
     logger.debug('reconnect', myId)
   })
-  socket.on('error', (error: any) => act(ACTIONS.ERROR, [error]))
-  socket.on('connect_error', (error: any) => act(ACTIONS.ERROR, [error]))
-  socket.on('connect_timeout', (error: any) => act(ACTIONS.ERROR, [error]))
+  socket.on('error', (error: any) => trigger(EVENTS.ERROR, [error]))
+  socket.on('connect_error', (error: any) => trigger(EVENTS.ERROR, [error]))
+  socket.on('connect_timeout', (error: any) => trigger(EVENTS.ERROR, [error]))
 
   return () => socket.disconnect()
+}
+
+on(EVENTS.CLIENT_UPDATE, (newClientIds: ID[]) => {
+  clientIds = newClientIds
+})
+
+on(EVENTS.INIT, (id: ID, _: any) => {
+  if (myId === id) {
+    logger.debug('init', myId, 'recovered the id')
+  } else {
+    myId = id
+    logger.debug('init', myId, 'received a new ID')
+  }
+})
+
+function waitForInitializationToComplete() {
+  return Promise.all([
+    new Promise<void>(resolve => once(EVENTS.CLIENT_UPDATE, () => resolve())),
+    new Promise<void>(resolve => once(EVENTS.INIT, () => resolve())),
+    new Promise<void>(resolve => once(EVENTS.CLIENT_METRICS_UPDATE, () => resolve()))
+  ])
 }
 
 export function setupSocket(socket: Socket, lagInterval: number) {
   _socket = socket
 
-  const idNegotiationWaiter = new Promise<ID>(resolve => {
-    on(ACTIONS.INIT, (id: ID, _: any) => {
-      if (myId === id) {
-        logger.debug('init', myId, 'recovered the id')
-      } else {
-        myId = id
-        logger.debug('init', myId, 'received a new ID')
-      }
-      resolve(myId)
-    })
-  })
-  
-  const clientUpdateWaiter = new Promise<void>(resolve => {
-    on(ACTIONS.CLIENT_UPDATE, (newClientIds: ID[]) => {
-      clientIds = newClientIds
-      resolve()
-    })
-  })
-  
-  const clientMetricsWaiter = new Promise<void>(resolve => {
-    on(ACTIONS.CLIENT_METRICS_UPDATE, (newClientMetrics: { [id: string]: ConnectionMetrics }) => {
-      clientMetrics = newClientMetrics
-      resolve()
-    })
-  })
-  
-  Promise.all([idNegotiationWaiter, clientUpdateWaiter, clientMetricsWaiter]).then(() => {
-    act(ACTIONS.CONNECTED, myId)
-  })
-
-  socket.on(ACTIONS.SUGGEST_ID, (suggestedId: ID) => {
+  socket.on(EVENTS.SUGGEST_ID, (suggestedId: ID) => {
     if (!myId || myId === suggestedId) {
-      logger.debug(ACTIONS.SUGGEST_ID, myId, 'received a suggested id', suggestedId, 'accepting it')
-      socket.emit(ACTIONS.ACCEPT_ID, suggestedId)
+      logger.debug(EVENTS.SUGGEST_ID, myId, 'received a suggested id', suggestedId, 'accepting it')
+      socket.emit(EVENTS.ACCEPT_ID, suggestedId)
     } else {
-      logger.debug(ACTIONS.SUGGEST_ID, myId, 'received a new ID', suggestedId, "but already have an ID, attempting to recover the previous id")
-      socket.emit(ACTIONS.SUGGEST_ID, myId)
+      logger.debug(EVENTS.SUGGEST_ID, myId, 'received a new ID', suggestedId, "but already have an ID, attempting to recover the previous id")
+      socket.emit(EVENTS.SUGGEST_ID, myId)
     }
   })
 
   socket.on("connect", () => {
     startLagPingPong(lagInterval)
-    if (myId) {
-      logger.debug('connect', myId, 'socket connected, requesting recovery of previous id')
-    } else{
-      logger.debug('connect', myId, 'socket connected for the first time')
-    }
+    logger.debug('connect', myId, 'socket connected')
+    waitForInitializationToComplete().then(() => {
+      trigger(EVENTS.CONNECTED, myId)
+    })
   })
 
-  socket.on("disconnect", (reason, details) => {
+  socket.on("disconnect", (reason: string, details: any) => {
     stopLagPingPong()
     if (['io server disconnect', 'io client disconnect'].includes(reason)) {
       logger.debug('disconnect', myId, reason, details, "will not reconnect")
       socket.off()
-      act(ACTIONS.DISCONNECTED)
+      trigger(EVENTS.DISCONNECTED)
     } else {
       logger.debug('disconnect', myId, reason, details, "will try to reconnect")
     }
   });
 
-  socket.on("connect_error", (error) => {
+  socket.on("connect_error", (error: Error) => {
     logger.error(`${myId}:`, error)
-    act(ACTIONS.ERROR, [error])
+    trigger(EVENTS.ERROR, [error])
   })
 
-  socket.on("message", (msg) => {
+  socket.on("message", (msg: string) => {
     logger.debug('message:', myId, msg)
     const {action, args} = JSON.parse(msg)
-    act(action, ...(args ?? []))
+    trigger(action, ...(args ?? []))
   })
-}
-
-let lagPingTimeout: any
-function startLagPingPong(lagInterval: number) {
-  function ping() {
-    send(ACTIONS.PING, Date.now())
-    lagPingTimeout = setTimeout(ping, lagInterval)
-  }
-  ping()
-}
-function stopLagPingPong() {
-  clearTimeout(lagPingTimeout)
-  lagPingTimeout = null
 }
 
 export function send(action: string, ...args: any[]) {
@@ -154,8 +132,4 @@ export function send(action: string, ...args: any[]) {
 
 export function clients() {
   return clientIds
-}
-
-export function metrics(id: ID) {
-  return clientMetrics[id]
 }

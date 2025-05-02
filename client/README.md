@@ -1,5 +1,5 @@
 # Shared State
-Synchronized state between server and multiple clients using WebRTC and WebSockets.
+Synchronized state between server and multiple clients using WebSockets.
 
 A shared state is the root of all evils in software development. However sometimes you just don't want to think about
 the how, you just want a piece of JSON to be available on multiple clients and a server. Hence this library!
@@ -17,7 +17,7 @@ o  o  o Yay for Ascii Art!
 The server (*) is in charge of changing the state and is the only one with access to the `update()` function.
 ```javascript
 import { update } from 'shared-state-server'
-update<SomeState>({ new: 'state' })
+update<SomeState>({ state: 'new-state' })
 ```
 
 The clients get the latest state on every change. Clients cannot change the state directly but they can communicate directly with the server via the `send()` and `on()` functions. Most commonly a client can ask the server
@@ -25,11 +25,11 @@ to perform updates.
 ```javascript
 // client
 import { send } from 'shared-state-client'
-send('please-change-the-state', 'some value')
+send('please-change-the-state', {state: 'another-value'})
 
 // server
 import { on, update } from 'shared-state-server'
-on('please-change-the-state', value => update({ value }))
+on('please-change-the-state', arg => update({ ...arg }))
 ```
 
 The clients can attach to a couple of predefined events. Most importantly `ACTIONS.INIT` will provide a uuid
@@ -118,7 +118,7 @@ open localhost:8080
 
 # Dependencies
 
-The `shared-state-client` depends on `socket.io-client` library to be available in the global namespace. as the `io` object. Unfortunately it's a large library so it's best be left outside the library bundle file.
+The `shared-state-client` depends on `socket.io-client` library to be available in the global namespace. as the `io` object. Unfortunately it's a large library so it's best be left outside the library bundle file. Also consumers of this library might want to be in control of which version of socket-io they want to depend on.
 
 See: https://socket.io/docs/client-api/
 
@@ -131,7 +131,7 @@ See: https://socket.io/docs/client-api/
 
 `start(httpServerOrPort, initialState, onConnect, config)`
 
-  Initializes the SharedState server. This will open websocket and webrtc communication in the defined httpServer or portnumber.
+  Initializes the SharedState server. This will open a websocket server attached to the defined httpServer or portnumber.
   
   * `httpServerOrPort: Server|number`: An instance of http(s).Server or a port number. The Server will be bound to provide a websocket interface for establishing the connections. This will be directly passed to Socket.io.
 
@@ -141,27 +141,7 @@ See: https://socket.io/docs/client-api/
 
   * `config: Config`: Configuration of the system.
 
-    * `iceServers: { urls: string|string[], username?: string, credential?: string }[]` _= []_ : WebRTC communication relies on ICE Servers that allow
-    the communication to be established across NAT and
-    difficult networks. ICE servers are a combination of STUN servers and TURN servers.
-      
-      * STUN servers allow WebRTC to get real ips in networks 
-      that utilize NATs (most do). e.g. with `stun:localhost`
-      
-      * TURN servers will provide a proxy for clients that cannot
-      establish WebRTC connections directly. e.g. with `turn:localhost`
-      
-      For more information, see https://webrtc.org/getting-started/turn-server
-
-      If your not doing just `localhost`, you will definitely need STUN and TURN Servers.
-    
-      Your best bet of getting them is pay for it (e.g. https://twilio.com) or host an open source server. (e.g. https://github.com/coturn/coturn).
-
-    * `peerTimeout: number` _= 10000_ : Timeout in milliseconds for closing a peer when a client attempts to connect but cannot finalize the communication setup phase.
-
     * `debugLog: boolean` _= false_ : Whether to log all the things to console.log.
-
-    * `fastButUnreliable: boolean` _= true_ : Whether to prefer fast but unreliable communication (unordered UDP) or slow but reliable (ordered TCP with 150ms message timeout). Please use the same value for client and the server.
 
     * `path: string` _= /shared-state_ : A path component to which the socket interface attaches to.
 

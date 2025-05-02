@@ -1,4 +1,4 @@
-import { on, ACTIONS } from './actions.js'
+import { on, EVENTS } from './events.js'
 import deepDiff, { Diff } from 'deep-diff'
 
 let current = {}
@@ -13,9 +13,9 @@ function decompressKeys(diff: any): Diff<any, any> {
   return result
 }
 
-on(ACTIONS.INIT, (_: any, newState: any) => current = newState)
+on(EVENTS.INIT, (_: any, newState: any) => current = newState)
 
-on(ACTIONS.STATE_UPDATE, (diffs: Array<Diff<any, any>>) => {
+on(EVENTS.STATE_UPDATE, (diffs: Array<Diff<any, any>>) => {
   diffs.map(decompressKeys).map(diff => deepDiff.applyChange(current, {}, diff))
 })
 

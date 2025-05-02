@@ -1,4 +1,4 @@
-import { ACTIONS } from "./actions.js"
+import { EVENTS } from "./events.js"
 import deepDiff from 'deep-diff'
 import rfdc from 'rfdc'
 import { broadcast } from "./clients.js"
@@ -15,7 +15,7 @@ export function state<T>(): T {
 export function init<T>(state: T) {
   current = deepClone(state)
   clone = deepClone(current)
-  broadcast(ACTIONS.STATE_INIT, current)
+  broadcast(EVENTS.STATE_INIT, current)
 }
 
 function compressKeys(diff: any): any {
@@ -32,7 +32,7 @@ export function update<T>(state: T) {
   const diffs = deepDiff.diff(current, state)
   if (diffs && diffs.length > 0) {
     diffs.map(d => deepDiff.applyChange(current, state, d))
-    broadcast(ACTIONS.STATE_UPDATE, diffs.map(compressKeys))
+    broadcast(EVENTS.STATE_UPDATE, diffs.map(compressKeys))
     clone = deepClone(current)
   }
 }
