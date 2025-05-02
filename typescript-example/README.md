@@ -1,17 +1,23 @@
 ## An example of the usage of the Shared-State libraries
 
+### Build
+
+```
+./build.sh
+```
+
 Run the client
 ```
 nvm use
-( cd ../client && npm run build )
-( cd client && npm run build && npm run start )
+( cd client-example && npm run start )
 ```
+
 Run the server
 ```
 nvm use
-( cd ../server && npm run build )
-( cd server && npm run build && PORT=3000 npm run start )
+( cd server-example && PORT=3000 npm run start )
 ```
+
 ```
 open localhost:8080
 ```
